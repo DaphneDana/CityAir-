@@ -1,0 +1,31 @@
+TC ID,Inputs / Preconditions,Test Area,Test Case Description,Expected Outcome,Result
+TC-F-PMS,Matchbox smoke directed at PMS5003 for ≤3 s,Sensor Inputs,Verify particulate alert chain,Red LED & buzzer <5 s; dashboard PM10 critical,Pass
+TC-F-CO,Attach 50 ppm CO span-gas tube to MQ-135,Sensor Inputs,Verify carbon-monoxide alert chain,Same visual/audible alerts; CO metric red,Pass
+TC-DB,Send duplicate REST POST of identical payload,Data Integrity,Attempt double insert into DB,Only one row persists; no UI duplication,Pass
+TC-GSM,Unscrew GSM antenna for 10 min then re-attach,Connectivity,Evaluate offline cache & resend,“Offline” LED; data back-filled in order,Pass w/Remarks
+TC-STAB,Continuous mains power for 10 h,Reliability,Long-run soak test,No resets; <5 % heap growth; 0 missed samples,Fail
+TC-UI,Chrome desktop; valid admin creds,Usability,Login → live view → PDF export,All steps ≤4 clicks; PDF <20 s,Pass
+TC-LED-ERR,Inject 4 V brown-out on 5 V rail,Hardware Fail-safe,Observe alert lighting under low voltage,Amber warning; sampling continues,Fail
+TC-TIMEZONE,Browser UTC-05:00,Time Handling,View timestamps in UI,UI shows local TZ; DB remains UTC,Pass w/Remarks
+TC-AUTH-LOGIN,Valid admin email/password,Authentication,Standard login flow,Redirect to /dashboard; JWT issued,Pass
+TC-AUTH-LOCK,Five wrong passwords,Authentication,Account lockout policy,Lock 15 min; toast message shown,Pass
+TC-LIVE-REFRESH,Dashboard open 2 min,Dashboard,Auto-refresh of metric cards,Cards update every 30 s,Pass
+TC-CONF-THRESH,Edit PM2.5 critical → 80 µg m⁻³,Configuration,Threshold update workflow,New limit active next cycle; audit logged,Pass
+TC-ALERT-ACK,Red alert active,Alert Flow,Acknowledge alert in UI,Status → Cleared; red LED stops,Pass
+TC-PDF-REPORT,Select 24 h date range,Reporting,Generate compliance PDF,Branded PDF downloads <20 s,Pass
+TC-ANAL-7DAY,7 days of data present,Analytics,Load long-term trend & zoom,Chart renders; extrema accurate,Pass
+TC-RBAC,Viewer role logged in,Security,Attempt threshold edits,“Forbidden” modal; no DB change,Pass
+TC-SEC-LOGOUT,Authenticated session then logout,Security,Back-button cache check,Back shows /login; no data visible,Pass
+TC-MOB-UI,Android Chrome 320 px width,Responsiveness,Inspect mobile layout,No horizontal scroll; cards stack,Pass
+TC-PERF-PAINT,Chrome dev-tools 3 G throttle,Performance,Measure first paint,Dashboard first paint <2 s,Fail
+TC-BE-DBFAIL,Stop MySQL for 2 min,Backend Resilience,API behaviour on DB outage,API 503; recovers automatically,Pass
+TC-USER-ADD,Admin panel open,Admin Ops,Create Operator account,Account created; invite email queued,Pass
+TC-PWR-LOW,Backup battery at 15 %,Power,Low-battery mode behaviour,Sample interval stretches; UI banner,Pass
+TC-NET-RECOVER,Disable GSM 5 min & generate data,Network,Back-fill order & integrity,All queued samples upload intact,Pass
+TC-CAL-CO,200 ppm span gas with CAL cap,Calibration,CO span routine,New slope stored; reading ±5 ppm,Pass
+TC-CAL-ZERO,Blank zero cap installed,Calibration,Zero-check all sensors,All pollutants <5 % of spec,Pass
+TC-UI-TABNAV,Keyboard-only navigation,Accessibility,Tab/Shift-Tab through UI,All controls reachable; focus visible,Pass
+TC-REP-SCHED,Admin schedules daily email,Automation,Scheduled PDF report job,Job saved; email sent next day,Pass
+TC-PWD-POLICY,Enter weak pwd “abcd”,Security,Password-complexity check,Error message; cannot save,Pass
+TC-API-ERROR,Stop Node API; reload UI,Error Handling,UI response when API down,“Service Unavailable” banner,Fail
+TC-UI-DARKMODE,Toggle dark-mode switch,UI Theme,Theme inversion test,Colours invert; readability OK,Pass

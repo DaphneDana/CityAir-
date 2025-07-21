@@ -1,0 +1,78 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 Int             @id @default(autoincrement()) @map("UserID")
+  username           String          @unique @map("Username")
+  email              String          @unique @map("Email")
+  passwordHash       String          @map("PasswordHash")
+  role               String          @map("Role")
+  createdAt          DateTime        @map("CreatedAt")
+  updatedAt          DateTime        @map("UpdatedAt")
+  acknowledgedAlerts Alert[]         @relation("AcknowledgedBy")
+  configurations     Configuration[]
+
+  @@map("Users")
+}
+
+model SensorData {
+  id          Int      @id @default(autoincrement()) @map("DataID")
+  channelId   String   @map("ChannelID")
+  location    String   @map("Location")
+  timestamp   DateTime @map("Timestamp")
+  co          Float?   @map("CO")
+  pm2_5       Float?   @map("PM2_5")
+  pm10        Float?   @map("PM10")
+  voc         Float?   @map("VOC")
+  methane     Float?   @map("Methane")
+  humidity    Float?   @map("Humidity")
+  temperature Float?   @map("Temperature")
+
+  @@index([channelId])
+  @@index([timestamp])
+  @@map("SensorData")
+}
+
+model Alert {
+  id                    Int       @id @default(autoincrement()) @map("AlertID")
+  channelId             String    @map("ChannelID")
+  alertType             String    @map("AlertType")
+  severity              String    @map("Severity")
+  message               String    @map("Message") @db.Text
+  timestamp             DateTime  @map("Timestamp")
+  acknowledged          Boolean   @map("Acknowledged")
+  acknowledgedBy        Int?      @map("AcknowledgedBy")
+  acknowledgedTimestamp DateTime? @map("AcknowledgedTimestamp")
+
+  user User? @relation("AcknowledgedBy", fields: [acknowledgedBy], references: [id])
+
+  @@index([channelId])
+  @@index([timestamp])
+  @@map("Alerts")
+}
+
+model Configuration {
+  id          Int      @id @default(autoincrement()) @map("ConfigID")
+  userId      Int      @map("UserID")
+  configType  String   @map("ConfigType")
+  configKey   String   @map("ConfigKey")
+  configValue String   @map("ConfigValue")
+  createdAt   DateTime @default(now()) @map("CreatedAt")
+  updatedAt   DateTime @updatedAt @map("UpdatedAt")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, configType, configKey])
+  @@index([userId])
+  @@index([configType])
+  @@map("Configurations")
+}

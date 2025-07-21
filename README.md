@@ -1,12 +1,12 @@
-# FactoryAirWatch
+# CITYAIR+
 
-**Real-time IoT-Driven Air-Quality Monitoring for Industrial Environments**
+**Real-time IoT-Driven Air-Quality Monitoring for Cities**
 
 ![Dashboard Preview](images/showcase.jpeg)
 
 ## Overview
 
-FactoryAirWatch is a comprehensive air quality monitoring solution developed as a Makerere University capstone project. The system combines affordable IoT sensors with a secure cloud dashboard to provide Ugandan factories with minute-by-minute air quality insights, helping them maintain regulatory compliance and ensure worker safety.
+CITYAIR+ is a comprehensive air quality monitoring solution project. The system combines affordable IoT sensors with a secure cloud dashboard to provide Ugandan factories with minute-by-minute air quality insights, helping them maintain regulatory compliance and ensure worker safety.
 
 ## Monitored Parameters
 

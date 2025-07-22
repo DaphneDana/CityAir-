@@ -10,7 +10,7 @@ export default function Home() {
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
             <Gauge className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">FactoryAirWatch</span>
+            <span className="text-xl font-bold">CityAir+</span>
           </div>
           <nav className="hidden md:flex items-center gap-6">
             <Link href="/" className="text-sm font-medium hover:text-primary">
@@ -45,11 +45,11 @@ export default function Home() {
               <div className="flex flex-col justify-center space-y-4">
                 <div className="space-y-2">
                   <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl/none">
-                    Monitor Air Quality in Your Industrial Environment
+                    Monitor Air Quality & Combat Climate Change in Your City
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                    Real-time monitoring, advanced analytics, and instant alerts for maintaining optimal air quality in
-                    your factory.
+                    Real-time monitoring, advanced analytics, instant alerts and real-time display for maintaining optimal air quality in
+                    your city.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
@@ -88,7 +88,7 @@ export default function Home() {
               <div className="space-y-2">
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Key Features</h2>
                 <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  FactoryAirWatch provides comprehensive tools to monitor and improve air quality in industrial
+                  CityAir+ provides comprehensive tools to monitor and improve air quality in urban
                   environments.
                 </p>
               </div>
@@ -98,7 +98,7 @@ export default function Home() {
                 <div className="rounded-full bg-primary/10 p-4">
                   <Gauge className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-bold">Real-time Monitoring</h3>
+                <h3 className="text-xl font-bold">Real-time Monitoring and display</h3>
                 <p className="text-center text-muted-foreground">
                   Track air quality metrics in real-time with accurate sensors and instant data processing.
                 </p>
@@ -110,7 +110,7 @@ export default function Home() {
                 <h3 className="text-xl font-bold">Advanced Analytics</h3>
                 <p className="text-center text-muted-foreground">
                   Gain insights with powerful analytics tools that help identify patterns and predict air quality
-                  trends.
+                  trends around your city
                 </p>
               </div>
               <div className="flex flex-col items-center space-y-4 rounded-lg border p-6 shadow-sm">
@@ -119,7 +119,7 @@ export default function Home() {
                 </div>
                 <h3 className="text-xl font-bold">Instant Alerts</h3>
                 <p className="text-center text-muted-foreground">
-                  Receive immediate notifications when air quality levels exceed your defined thresholds.
+                  Receive immediate notifications  and display when air quality levels exceed your defined thresholds.
                 </p>
               </div>
             </div>
@@ -132,36 +132,36 @@ export default function Home() {
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                  Why Choose FactoryAirWatch
+                  Why Choose CityAir+ for Urban Air Quality Monitoring?
                 </h2>
                 <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Our platform offers unique advantages for industrial air quality monitoring.
+                  Our platform offers unique advantages for urban air quality monitoring.
                 </p>
               </div>
             </div>
             <div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 py-12 md:grid-cols-2 lg:gap-12">
               <div className="space-y-4">
-                <h3 className="text-xl font-bold">Improved Worker Health</h3>
+                <h3 className="text-xl font-bold">Real-Time Climate Action & Carbon Emission Response</h3>
                 <p className="text-muted-foreground">
-                  Ensure a healthier work environment by monitoring and maintaining optimal air quality levels.
+                  CityAir+ provides immediate carbon emission alerts through LED indicators during high-emission periods, enabling proactive community intervention rather than reactive climate reporting and empowering citizens to take instant carbon footprint reduction actions.
                 </p>
               </div>
               <div className="space-y-4">
-                <h3 className="text-xl font-bold">Regulatory Compliance</h3>
+                <h3 className="text-xl font-bold">Climate-Conscious Community Engagement</h3>
                 <p className="text-muted-foreground">
-                  Stay compliant with environmental regulations and avoid costly penalties.
+                  CityAir+ builds carbon literacy through real-time emission data education and serves as a behavioral change catalyst for climate-conscious transportation and energy choices while supporting democratic climate action and environmental equity advocacy.
                 </p>
               </div>
               <div className="space-y-4">
                 <h3 className="text-xl font-bold">Increased Productivity</h3>
                 <p className="text-muted-foreground">
-                  Better air quality leads to improved worker performance and reduced sick days.
+                  Better air quality leads to improved weather conditions, enhancing productivity and well-being in urban areas.
                 </p>
               </div>
               <div className="space-y-4">
                 <h3 className="text-xl font-bold">Data-Driven Decisions</h3>
                 <p className="text-muted-foreground">
-                  Make informed decisions based on comprehensive air quality data and analytics.
+                  Make informed decisions based on comprehensive air quality data and analytics that can be used to mitigate pollution, improve weather conditions, and enhance overall urban livability.
                 </p>
               </div>
             </div>
@@ -174,10 +174,10 @@ export default function Home() {
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                  Ready to Improve Your Factory's Air Quality?
+                  Ready to Improve Urban Air Quality?
                 </h2>
                 <p className="max-w-[900px] md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Start monitoring your industrial environment today with FactoryAirWatch.
+                  Start monitoring your urban environment today with CityAir+.
                 </p>
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
@@ -202,7 +202,7 @@ export default function Home() {
         <div className="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
           <div className="flex items-center gap-2">
             <Gauge className="h-5 w-5 text-primary" />
-            <p className="text-sm text-muted-foreground">© 2025 FactoryAirWatch. All rights reserved.</p>
+            <p className="text-sm text-muted-foreground">© 2025 CityAir+. All rights reserved.</p>
           </div>
           <div className="flex gap-4">
             <Link href="/privacy" className="text-sm text-muted-foreground hover:text-primary">

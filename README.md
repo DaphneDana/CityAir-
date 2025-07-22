@@ -54,7 +54,7 @@ CityAir+ is a proactive, IoT-driven air quality monitoring system designed for u
 - Empower citizen engagement via real-time feedback mechanisms
 
 
-## Demo & Resources
+<!-- ## Demo & Resources
 
 | Resource | URL | Notes |
 |----------|-----|-------|
@@ -62,11 +62,12 @@ CityAir+ is a proactive, IoT-driven air quality monitoring system designed for u
 | Admin Dashboard | [https://factory-air-watch-m9bx.vercel.app](https://factory-air-watch-m9bx.vercel.app) | Login: `admin@example.com` / `password123` |
 | Technical Blog | [https://iot-monitor-livid.vercel.app/blog](https://iot-monitor-livid.vercel.app/blog) | Implementation details and case studies |
 | API Documentation | [https://factory-air-watch-m9bx.vercel.app/api-docs](https://factory-air-watch-m9bx.vercel.app/api-docs) | OpenAPI/Swagger interface |
-
+-->
+<!--
 ## Repository Structure
 
 ```
-factory-air-watch/
+CityAir+/
 ├─ docs/           # Documentation, manuals, and design specifications
 │  ├─ api/         # API documentation and endpoint reference
 │  ├─ hardware/    # Component datasheets and wiring diagrams
@@ -91,15 +92,15 @@ factory-air-watch/
 ├─ ci-cd/          # CI/CD configuration files
 └─ images/         # Screenshots and graphics for documentation
 ```
-
-## Getting Started
+-->
+<!-- ## Getting Started
 
 ### Dashboard Development
 
 ```bash
 # Clone the repository
-git clone https://github.com/<your-org>/factory-air-watch.git
-cd factory-air-watch
+git clone https://github.com/<your-org>/cityair+.git
+cd CityAir+
 
 # Set up environment variables
 cp app/dashboard/.env.example app/dashboard/.env.local
@@ -137,7 +138,7 @@ pio test -e mega2560
 ### Production Deployment
 
 For production deployment instructions, see [docs/deployment/README.md](docs/deployment/README.md).
-
+-->
 ## Contributing
 
 We welcome contributions from the community! Please follow these steps:

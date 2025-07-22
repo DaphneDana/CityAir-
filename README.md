@@ -1,12 +1,13 @@
-# CITYAIR+
+# CityAir+
 
-**Real-time IoT-Driven Air-Quality Monitoring for Cities**
+**Community-Based Real-Time Carbon Emission Monitoring and Response System**
 
 ![Dashboard Preview](images/showcase.jpeg)
 
 ## Overview
 
-CITYAIR+ is a comprehensive air quality monitoring solution project. The system combines affordable IoT sensors with a secure cloud dashboard to provide Ugandan factories with minute-by-minute air quality insights, helping them maintain regulatory compliance and ensure worker safety.
+CityAir+ is a proactive, IoT-driven air quality monitoring system designed for urban communities in Eastern and Southern Africa. By combining carbon emission sensors, visual public alerts (LEDs/screens), cloud analytics, and citizen feedback, it empowers residents and governments to respond in real time to harmful pollution events. The system enhances public health and supports climate adaptation goals aligned with SDG 11 and 13.
+
 
 ## Monitored Parameters
 
@@ -41,8 +42,19 @@ CITYAIR+ is a comprehensive air quality monitoring solution project. The system 
 - **Compliance Ready**: Automatic PDF report generation for regulatory submissions
 - **DevOps Integration**: Complete CI/CD pipeline from GitHub to Vercel with automated testing
 - **Enterprise Security**: Role-based access control with comprehensive audit logging
+- **Community Alerts**: LEDs and public screens indicate emission levels
+-  **Citizen Engagement**: People can report emissions and suggest action
+-  **Government Accountability**: System logs interventions and response times
 
-## Demo & Resources
+## Impact Objectives
+
+- Provide communities and city authorities with 24/7 emission data access
+- Achieve >80% public awareness through LED alerts and local screens
+- Drive a 15% reduction in peak emission levels through timely action
+- Empower citizen engagement via real-time feedback mechanisms
+
+
+<!-- ## Demo & Resources
 
 | Resource | URL | Notes |
 |----------|-----|-------|
@@ -50,11 +62,12 @@ CITYAIR+ is a comprehensive air quality monitoring solution project. The system 
 | Admin Dashboard | [https://factory-air-watch-m9bx.vercel.app](https://factory-air-watch-m9bx.vercel.app) | Login: `admin@example.com` / `password123` |
 | Technical Blog | [https://iot-monitor-livid.vercel.app/blog](https://iot-monitor-livid.vercel.app/blog) | Implementation details and case studies |
 | API Documentation | [https://factory-air-watch-m9bx.vercel.app/api-docs](https://factory-air-watch-m9bx.vercel.app/api-docs) | OpenAPI/Swagger interface |
-
+-->
+<!--
 ## Repository Structure
 
 ```
-factory-air-watch/
+CityAir+/
 ├─ docs/           # Documentation, manuals, and design specifications
 │  ├─ api/         # API documentation and endpoint reference
 │  ├─ hardware/    # Component datasheets and wiring diagrams
@@ -79,15 +92,15 @@ factory-air-watch/
 ├─ ci-cd/          # CI/CD configuration files
 └─ images/         # Screenshots and graphics for documentation
 ```
-
-## Getting Started
+-->
+<!-- ## Getting Started
 
 ### Dashboard Development
 
 ```bash
 # Clone the repository
-git clone https://github.com/<your-org>/factory-air-watch.git
-cd factory-air-watch
+git clone https://github.com/<your-org>/cityair+.git
+cd CityAir+
 
 # Set up environment variables
 cp app/dashboard/.env.example app/dashboard/.env.local
@@ -125,7 +138,7 @@ pio test -e mega2560
 ### Production Deployment
 
 For production deployment instructions, see [docs/deployment/README.md](docs/deployment/README.md).
-
+-->
 ## Contributing
 
 We welcome contributions from the community! Please follow these steps:
@@ -146,17 +159,19 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for more detailed guidelines.
 
 ## Acknowledgments
 
-This project was developed as a capstone at Makerere University with support from:
-- Faculty of Engineering, Makerere University
-- Uganda National Bureau of Standards
-- Open Environmental Data Project
+This project is being developed by graduands from Makerere University and has been supported by:
+
+- **Ubuntu Net Women Alliance 2025** 
+- Makerere University – College of Computing & Informatics Technology   
+- Advocacy for Digital Democracy  
+
 
 ## Contact
 
 For questions or support, please contact:
-- Project Lead: [project-lead@factoryairwatch.org](mailto:project-lead@factoryairwatch.org)
-- Technical Support: [support@factoryairwatch.org](mailto:support@factoryairwatch.org)
+- Project Lead: [project-lead@cityair+.org](mailto:project-lead@cityair+.org)
+- Technical Support: [support@cityair+.org](mailto:support@cityair+.org)
 
 ---
 
-© 2025 FactoryAirWatch 
+© 2025 CityAir+

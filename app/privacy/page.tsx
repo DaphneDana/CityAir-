@@ -31,14 +31,13 @@ export default function PrivacyPage() {
             Privacy Policy
           </motion.h1>
           <motion.p variants={itemVariants} className="text-muted-foreground">
-            Last updated: March 14, 2025
+            Last updated: July 23, 2025
           </motion.p>
         </div>
 
         <motion.div variants={itemVariants} className="mb-8">
           <p className="text-muted-foreground">
-            At FactoryAirWatch, we take your privacy seriously. This Privacy Policy explains how we collect, use,
-            disclose, and safeguard your information when you use our air quality monitoring service.
+            At CityAir+, we are committed to protecting your privacy while empowering communities to combat climate change through real-time air quality monitoring. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our community-based carbon emission monitoring and response system.
           </p>
         </motion.div>
 
@@ -50,23 +49,19 @@ export default function PrivacyPage() {
                 Data Collection
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground space-y-4 pl-7">
-                <p>We collect several types of information to provide and improve our service to you:</p>
+                <p>We collect several types of information to provide climate action insights and improve air quality monitoring in your community:</p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>
-                    <strong>Personal Information:</strong> When you create an account, we collect your name, email
-                    address, phone number, and company information.
+                    <strong>User Information:</strong> When you access our dashboard, we may collect your location data, device information, and usage preferences to provide localized air quality alerts.
                   </li>
                   <li>
-                    <strong>Usage Data:</strong> We collect information on how you interact with our platform, including
-                    login times, features used, and preferences.
+                    <strong>Community Interaction Data:</strong> We collect information on how citizens interact with our public displays, alert systems, and health recommendations.
                   </li>
                   <li>
-                    <strong>Air Quality Data:</strong> We collect and store air quality measurements from sensors
-                    installed in your facility.
+                    <strong>Environmental Data:</strong> We collect real-time air quality measurements including CO2 levels, PM2.5, PM10, temperature, and humidity from our IoT sensor network deployed across urban locations.
                   </li>
                   <li>
-                    <strong>Device Information:</strong> We collect information about the devices you use to access our
-                    service, including IP address, browser type, and operating system.
+                    <strong>Government Access Logs:</strong> For authorized government officials and environmental agencies, we track access to historical data, report generation, and policy intervention activities.
                   </li>
                 </ul>
               </AccordionContent>
@@ -78,23 +73,19 @@ export default function PrivacyPage() {
                 Data Protection
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground space-y-4 pl-7">
-                <p>We implement a variety of security measures to maintain the safety of your personal information:</p>
+                <p>We implement robust security measures to protect environmental data and user privacy while maintaining transparent climate action:</p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>
-                    <strong>Encryption:</strong> All data transmitted between your devices and our servers is encrypted
-                    using industry-standard SSL/TLS protocols.
+                    <strong>Secure Transmission:</strong> All data from IoT sensors to our cloud infrastructure is encrypted using industry-standard protocols to prevent tampering with climate data.
                   </li>
                   <li>
-                    <strong>Secure Storage:</strong> Your data is stored in secure cloud environments with multiple
-                    layers of protection.
+                    <strong>Cloud Security:</strong> Environmental data is stored in secure Firebase and MongoDB databases with multiple layers of protection and regular backups.
                   </li>
                   <li>
-                    <strong>Access Controls:</strong> We restrict access to your information to authorized personnel
-                    only, based on the principle of least privilege.
+                    <strong>Role-Based Access:</strong> We implement different access levels for citizens, government officials, environmental agencies, and system administrators based on the principle of data transparency with privacy protection.
                   </li>
                   <li>
-                    <strong>Regular Audits:</strong> We conduct regular security audits and vulnerability assessments to
-                    ensure our systems remain secure.
+                    <strong>Data Integrity:</strong> We conduct regular audits of our sensor network and database systems to ensure accurate climate monitoring and prevent data manipulation.
                   </li>
                 </ul>
               </AccordionContent>
@@ -106,24 +97,22 @@ export default function PrivacyPage() {
                 Data Usage
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground space-y-4 pl-7">
-                <p>We use the collected data for various purposes:</p>
+                <p>We use collected data to drive climate action and support community-based environmental management:</p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>
-                    <strong>Service Provision:</strong> To provide and maintain our service, including monitoring air
-                    quality and sending alerts.
+                    <strong>Real-Time Alerts:</strong> To provide immediate air quality alerts through LED indicators and digital displays, enabling proactive climate action.
                   </li>
                   <li>
-                    <strong>Improvement:</strong> To improve our service based on how you use it.
+                    <strong>Health Protection:</strong> To deliver personalized health recommendations during high-emission periods and support vulnerable community members.
                   </li>
                   <li>
-                    <strong>Communication:</strong> To communicate with you, including sending service updates and
-                    responding to your inquiries.
+                    <strong>Policy Support:</strong> To generate evidence-based reports for government officials to make informed climate policy decisions and track intervention effectiveness.
                   </li>
                   <li>
-                    <strong>Analytics:</strong> To analyze usage patterns and optimize our service performance.
+                    <strong>Research & Analysis:</strong> To support environmental agencies with climate research data, regional pollution comparisons, and long-term trend analysis for adaptation planning.
                   </li>
                   <li>
-                    <strong>Compliance:</strong> To comply with legal obligations and enforce our terms of service.
+                    <strong>System Optimization:</strong> To improve sensor accuracy, optimize alert thresholds, and enhance community engagement with our climate monitoring platform.
                   </li>
                 </ul>
               </AccordionContent>
@@ -135,23 +124,22 @@ export default function PrivacyPage() {
                 Data Sharing
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground space-y-4 pl-7">
-                <p>We may share your information with third parties in the following circumstances:</p>
+                <p>We may share environmental data with authorized parties to maximize climate action impact:</p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>
-                    <strong>Service Providers:</strong> We may share your information with third-party vendors who
-                    provide services on our behalf, such as hosting, data analysis, and customer service.
+                    <strong>Government Agencies:</strong> We share aggregated air quality data and trend analysis with city councils, transport authorities, and environmental departments for policy making and climate intervention planning.
                   </li>
                   <li>
-                    <strong>Business Transfers:</strong> If we are involved in a merger, acquisition, or sale of assets,
-                    your information may be transferred as part of that transaction.
+                    <strong>Research Institutions:</strong> We provide anonymized environmental data to academic researchers and international climate organizations studying air quality in Eastern and Southern Africa.
                   </li>
                   <li>
-                    <strong>Legal Requirements:</strong> We may disclose your information if required to do so by law or
-                    in response to valid requests by public authorities.
+                    <strong>Public Access:</strong> Real-time air quality data is made publicly available through our dashboard and API as part of our commitment to democratic environmental information access.
                   </li>
                   <li>
-                    <strong>With Your Consent:</strong> We may share your information with third parties when we have
-                    your consent to do so.
+                    <strong>Emergency Response:</strong> During extreme pollution events or climate emergencies, we may share location-specific data with health authorities and emergency services.
+                  </li>
+                  <li>
+                    <strong>Climate Networks:</strong> We may contribute data to global climate monitoring networks and carbon tracking initiatives, always in anonymized and aggregated form.
                   </li>
                 </ul>
               </AccordionContent>
@@ -163,32 +151,29 @@ export default function PrivacyPage() {
                 Your Rights
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground space-y-4 pl-7">
-                <p>You have certain rights regarding your personal information:</p>
+                <p>As part of our commitment to community empowerment and climate justice, you have the following rights:</p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>
-                    <strong>Access:</strong> You can request access to your personal information.
+                    <strong>Data Access:</strong> You can request access to air quality data collected in your area and understand how it affects your community's health and climate.
                   </li>
                   <li>
-                    <strong>Correction:</strong> You can request that we correct inaccurate or incomplete information.
+                    <strong>Alert Preferences:</strong> You can customize your notification preferences for air quality alerts and choose how you receive climate-related health recommendations.
                   </li>
                   <li>
-                    <strong>Deletion:</strong> You can request that we delete your personal information.
+                    <strong>Data Portability:</strong> You can request environmental data in machine-readable formats for personal analysis or community advocacy purposes.
                   </li>
                   <li>
-                    <strong>Restriction:</strong> You can request that we restrict the processing of your information.
+                    <strong>Sensor Information:</strong> You can request information about sensor locations, calibration status, and data accuracy in your neighborhood.
                   </li>
                   <li>
-                    <strong>Data Portability:</strong> You can request a copy of your information in a structured,
-                    commonly used, and machine- You can request a copy of your information in a structured, commonly
-                    used, and machine-readable format.
+                    <strong>Community Participation:</strong> You have the right to participate in discussions about sensor placement and contribute to improving climate monitoring in your area.
                   </li>
                   <li>
-                    <strong>Objection:</strong> You can object to the processing of your personal information.
+                    <strong>Objection:</strong> You can object to certain uses of data while still benefiting from public air quality information and climate alerts.
                   </li>
                 </ul>
                 <p>
-                  To exercise any of these rights, please contact us using the information provided in the "Contact Us"
-                  section.
+                  To exercise any of these rights or participate in community climate action, please contact us using the information provided below.
                 </p>
               </AccordionContent>
             </AccordionItem>
@@ -200,12 +185,10 @@ export default function PrivacyPage() {
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground space-y-4 pl-7">
                 <p>
-                  We may update our Privacy Policy from time to time. We will notify you of any changes by posting the
-                  new Privacy Policy on this page and updating the "Last updated" date.
+                  We may update our Privacy Policy to reflect changes in our climate monitoring technology, data practices, or legal requirements. We will notify the community of any significant changes through our public displays and dashboard announcements.
                 </p>
                 <p>
-                  You are advised to review this Privacy Policy periodically for any changes. Changes to this Privacy
-                  Policy are effective when they are posted on this page.
+                  We encourage you to review this Privacy Policy periodically to stay informed about how we protect your information while advancing community-based climate action. Changes to this Privacy Policy are effective when they are posted and updated on our platform.
                 </p>
               </AccordionContent>
             </AccordionItem>
@@ -214,12 +197,18 @@ export default function PrivacyPage() {
 
         <motion.div variants={itemVariants} className="mt-12 text-center">
           <p className="text-muted-foreground">
-            If you have any questions about this Privacy Policy, please contact us at:
+            If you have any questions about this Privacy Policy or want to get involved in climate action in your community, please contact us:
           </p>
-          <p className="font-medium mt-2">privacy@factoryairwatch.com</p>
+          <div className="mt-4 space-y-2">
+            <p className="font-medium">privacy@cityairplus.org</p>
+            <p className="text-sm text-muted-foreground">CityAir+ Team - Makerere University Software Engineering</p>
+            <div className="text-sm text-muted-foreground">
+              <p>Nakamyuka Daphne • Kisakye Martha • Namugga Martha</p>
+              <p>Empowering Communities for Climate Action</p>
+            </div>
+          </div>
         </motion.div>
       </motion.div>
     </div>
   )
 }
-

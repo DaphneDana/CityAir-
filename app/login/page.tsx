@@ -54,7 +54,7 @@ export default function LoginPage() {
           <div className="flex justify-center mb-4">
             <Gauge className="h-12 w-12 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold">FactoryAirWatch</h1>
+          <h1 className="text-3xl font-bold">City Air+</h1>
           <p className="text-muted-foreground">Sign in to your account</p>
         </div>
 

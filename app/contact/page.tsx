@@ -88,7 +88,7 @@ export default function ContactPage() {
             Contact Us
           </motion.h1>
           <motion.p variants={itemVariants} className="text-muted-foreground max-w-2xl mx-auto">
-            Have questions about FactoryAirWatch? Our team is here to help you with any inquiries about our air quality
+            Have questions about CityAir+? Our team is here to help you with any inquiries about our air quality
             monitoring solutions.
           </motion.p>
         </div>
@@ -174,8 +174,8 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h3 className="font-medium">Email</h3>
-                    <p className="text-muted-foreground">info@factoryairwatch.com</p>
-                    <p className="text-muted-foreground">support@factoryairwatch.com</p>
+                    <p className="text-muted-foreground">info@CityAir+.com</p>
+                    <p className="text-muted-foreground">support@CityAir+.com</p>
                   </div>
                 </div>
 
@@ -221,7 +221,7 @@ export default function ContactPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <h3 className="font-medium">How quickly can I set up FactoryAirWatch?</h3>
+                  <h3 className="font-medium">How quickly can I set up CityAir+?</h3>
                   <p className="text-sm text-muted-foreground">
                     Most installations can be completed within 1-2 business days, depending on the size of your
                     facility.

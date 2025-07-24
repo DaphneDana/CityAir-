@@ -15,9 +15,9 @@ const poppins = Poppins({
 })
 
 export const metadata: Metadata = {
-  title: "FactoryAirWatch - Industrial Air Quality Monitoring",
+  title: "CityAir+ - City air quality monitoring and climate control",
   description:
-    "Monitor and analyze air quality in industrial environments with real-time data, advanced analytics, and instant alerts.",
+    "Monitor and analyze air quality in urban environments with real-time data, advanced analytics, and instant alerts.",
     generator: 'v0.dev'
 }
 

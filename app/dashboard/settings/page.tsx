@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAuth } from "@/contexts/auth-context"
 import { motion } from "framer-motion"
-import { Bell, CloudFog, Cog, Droplets, Flame, Gauge, Mail, Save, Wind } from "lucide-react"
+import { Bell, CloudFog, Cog, Droplets, Flame, Gauge, Mail, Save, Thermometer } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -42,11 +42,11 @@ export default function SettingsPage() {
   const [notificationFrequency, setNotificationFrequency] = useState("immediate")
   const [quietHours, setQuietHours] = useState("none")
 
-  // Initial threshold settings template
+  // Initial threshold settings template for CityAir+ sensors
   const thresholdTemplate: ThresholdSetting[] = [
     {
       id: "co-threshold",
-      name: "Carbon Monoxide (CO)",
+      name: "Carbon Monoxide (CO) - MQ-9",
       value: 5,
       unit: "ppm",
       min: 1,
@@ -55,44 +55,34 @@ export default function SettingsPage() {
       icon: <Flame className="h-5 w-5" />,
     },
     {
-      id: "vocs-threshold",
-      name: "Volatile Organic Compounds (VOCs)",
+      id: "air-quality-threshold",
+      name: "Air Quality Index - MQ-135",
       value: 150,
-      unit: "ppb",
+      unit: "AQI",
       min: 50,
       max: 500,
       step: 10,
       icon: <CloudFog className="h-5 w-5" />,
     },
     {
-      id: "no2-threshold",
-      name: "Nitrogen Dioxide (NO2)",
-      value: 20,
-      unit: "ppb",
-      min: 5,
-      max: 100,
-      step: 1,
-      icon: <Wind className="h-5 w-5" />,
-    },
-    {
-      id: "pm25-threshold",
-      name: "Particulate Matter 2.5 (PM2.5)",
-      value: 12,
-      unit: "μg/m³",
-      min: 2,
+      id: "temperature-threshold",
+      name: "Temperature - DHT-11",
+      value: 35,
+      unit: "°C",
+      min: 20,
       max: 50,
       step: 0.5,
-      icon: <Droplets className="h-5 w-5" />,
+      icon: <Thermometer className="h-5 w-5" />,
     },
     {
-      id: "pm10-threshold",
-      name: "Particulate Matter 10 (PM10)",
-      value: 25,
-      unit: "μg/m³",
-      min: 5,
-      max: 100,
+      id: "humidity-threshold",
+      name: "Humidity - DHT-11",
+      value: 70,
+      unit: "%RH",
+      min: 30,
+      max: 90,
       step: 1,
-      icon: <Gauge className="h-5 w-5" />,
+      icon: <Droplets className="h-5 w-5" />,
     },
   ]
 
@@ -251,13 +241,13 @@ export default function SettingsPage() {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              subject: "FactoryAirWatch Settings Updated",
-              body: `Your alert settings have been updated successfully.\n\nThank you for using FactoryAirWatch!`,
+              subject: "CityAir+ Settings Updated",
+              body: `Your alert settings have been updated successfully.\n\nThank you for using CityAir+!`,
             }),
           })
         }
       } else {
-        toast.error("Saved settings")
+        toast.error("Failed to save settings")
       }
     } catch (error) {
       console.error("Error saving settings:", error)
@@ -315,7 +305,7 @@ export default function SettingsPage() {
                   <Cog className="h-5 w-5" />
                   Alert Threshold Configuration
                 </CardTitle>
-                <CardDescription>Set the threshold levels for each pollutant that will trigger alerts</CardDescription>
+                <CardDescription>Set the threshold levels for each sensor that will trigger alerts</CardDescription>
               </CardHeader>
               <CardContent className="space-y-8">
                 {thresholds.map((threshold) => (
@@ -350,8 +340,8 @@ export default function SettingsPage() {
               </CardContent>
               <CardFooter>
                 <p className="text-sm text-muted-foreground">
-                  These thresholds determine when alerts are triggered based on air quality readings. Adjust them
-                  according to your facility's specific requirements and regulatory standards.
+                  These thresholds determine when alerts are triggered based on your CityAir+ sensor readings. 
+                  Adjust them according to your local air quality standards and comfort preferences.
                 </p>
               </CardFooter>
             </Card>
@@ -419,8 +409,8 @@ export default function SettingsPage() {
               </CardContent>
               <CardFooter>
                 <p className="text-sm text-muted-foreground">
-                  Notification settings determine how and when you'll be alerted about air quality issues. Make sure at
-                  least one notification method is enabled to receive critical alerts.
+                  Notification settings determine how and when you'll be alerted about air quality and environmental issues. 
+                  Make sure at least one notification method is enabled to receive critical alerts.
                 </p>
               </CardFooter>
             </Card>
@@ -430,4 +420,3 @@ export default function SettingsPage() {
     </div>
   )
 }
-

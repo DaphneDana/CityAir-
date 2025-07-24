@@ -15,9 +15,6 @@ export function AppFooter() {
           <Link href="/contact" className="hover:text-primary">
             Contact
           </Link>
-          <Link href="https://iot-monitor-livid.vercel.app" className="hover:text-primary">
-            Blog
-          </Link>
         </div>
       </div>
     </footer>

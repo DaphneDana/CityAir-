@@ -251,7 +251,7 @@ export default function ReportsPage() {
 
       // Add title
       doc.setFontSize(18)
-      doc.text("FactoryAirWatch Report", 14, 22)
+      doc.text("CityAir+ Report", 14, 22)
 
       // Add date range
       doc.setFontSize(12)
@@ -309,7 +309,7 @@ export default function ReportsPage() {
         doc.setPage(i)
         doc.setFontSize(10)
         doc.text(
-          `FactoryAirWatch - Page ${i} of ${pageCount}`,
+          `CityAir- Page ${i} of ${pageCount}`,
           doc.internal.pageSize.getWidth() / 2,
           doc.internal.pageSize.getHeight() - 10,
           { align: "center" },

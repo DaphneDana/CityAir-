@@ -2,7 +2,6 @@
 
 **Community-Based Real-Time Carbon Emission Monitoring and Response System**
 
-![Dashboard Preview](images/showcase.jpeg)
 
 ## Overview
 

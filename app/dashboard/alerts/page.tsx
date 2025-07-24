@@ -18,7 +18,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { useAlerts } from "@/hooks/use-alerts"
 import { format } from "date-fns"
 import { motion } from "framer-motion"
-import { AlertCircle, AlertTriangle, CloudFog, Droplets, Flame, Gauge, Info, Search, Wind, X } from "lucide-react"
+import { AlertCircle, AlertTriangle, CloudFog, Droplets, Flame, Info, Search, Thermometer, X } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -37,7 +37,7 @@ export default function AlertsPage() {
     const query = searchQuery.toLowerCase()
     return (
       alert.message.toLowerCase().includes(query) ||
-      alert.channelId.toLowerCase().includes(query) ||
+      alert.sensorLocation.toLowerCase().includes(query) ||
       alert.alertType.toLowerCase().includes(query)
     )
   })
@@ -61,9 +61,9 @@ export default function AlertsPage() {
 
       const newActivity = {
         id: `activity-${Date.now()}`,
-        action: "Alert Acknowledged",
+        action: "Environmental Alert Resolved",
         timestamp: new Date().toISOString(),
-        details: `Resolved alert #${alertId}`,
+        details: `Acknowledged CityAir+ alert #${alertId}`,
       }
 
       const updatedActivities = [newActivity, ...activities].slice(0, 10)
@@ -80,25 +80,35 @@ export default function AlertsPage() {
     }
   }
 
-  // Get severity badge
+  // Get severity badge with CityAir+ specific styling
   const getSeverityBadge = (severity: string) => {
     switch (severity.toLowerCase()) {
       case "low":
         return (
-          <Badge variant="outline" className="border-yellow-500 text-yellow-500">
-            Low
+          <Badge variant="outline" className="border-green-500 text-green-500">
+            <Info className="mr-1 h-3 w-3" />
+            Low Risk
           </Badge>
         )
       case "medium":
         return (
-          <Badge variant="outline" className="border-orange-500 text-orange-500">
-            Medium
+          <Badge variant="outline" className="border-yellow-500 text-yellow-500">
+            <AlertCircle className="mr-1 h-3 w-3" />
+            Moderate Risk
           </Badge>
         )
       case "high":
         return (
           <Badge variant="outline" className="border-red-500 text-red-500">
-            High
+            <AlertTriangle className="mr-1 h-3 w-3" />
+            High Risk
+          </Badge>
+        )
+      case "critical":
+        return (
+          <Badge variant="outline" className="border-purple-500 text-purple-500">
+            <AlertTriangle className="mr-1 h-3 w-3" />
+            Critical
           </Badge>
         )
       default:
@@ -109,24 +119,28 @@ export default function AlertsPage() {
   // Get status badge
   const getStatusBadge = (acknowledged: boolean) => {
     return acknowledged ? (
-      <Badge className="bg-green-500">Resolved</Badge>
+      <Badge className="bg-green-500">
+        <span className="mr-1">✓</span>
+        Resolved
+      </Badge>
     ) : (
-      <Badge className="bg-red-500">Active</Badge>
+      <Badge className="bg-red-500">
+        <span className="mr-1">⚠</span>
+        Active
+      </Badge>
     )
   }
 
-  // Get pollutant icon
-  const getPollutantIcon = (alertType: string) => {
-    if (alertType.includes("CO")) {
+  // Get sensor icon based on CityAir+ sensors
+  const getSensorIcon = (alertType: string) => {
+    if (alertType.includes("CO") || alertType.includes("Carbon Monoxide")) {
       return <Flame className="h-4 w-4" />
-    } else if (alertType.includes("VOC")) {
+    } else if (alertType.includes("Air Quality") || alertType.includes("AQI")) {
       return <CloudFog className="h-4 w-4" />
-    } else if (alertType.includes("Methane")) {
-      return <Wind className="h-4 w-4" />
-    } else if (alertType.includes("PM2.5")) {
+    } else if (alertType.includes("Temperature")) {
+      return <Thermometer className="h-4 w-4" />
+    } else if (alertType.includes("Humidity")) {
       return <Droplets className="h-4 w-4" />
-    } else if (alertType.includes("PM10")) {
-      return <Gauge className="h-4 w-4" />
     } else {
       return <AlertCircle className="h-4 w-4" />
     }
@@ -158,9 +172,9 @@ export default function AlertsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Air Quality Alerts</h1>
+        <h1 className="text-3xl font-bold">Environmental Alerts</h1>
         <Button variant="outline" onClick={() => window.location.reload()}>
-          Refresh Alerts
+          Refresh Data
         </Button>
       </div>
 
@@ -168,9 +182,9 @@ export default function AlertsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5" />
-            Alert Management
+            CityAir+ Alert Management
           </CardTitle>
-          <CardDescription>Monitor and manage air quality alerts across all zones</CardDescription>
+          <CardDescription>Monitor and respond to environmental alerts from your CityAir+ sensors across the city</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Filters */}
@@ -178,7 +192,7 @@ export default function AlertsPage() {
             <div className="relative flex-1">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search alerts..."
+                placeholder="Search alerts by location, sensor type, or message..."
                 className="pl-8"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -186,14 +200,15 @@ export default function AlertsPage() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Select value={severityFilter} onValueChange={setSeverityFilter}>
-                <SelectTrigger className="w-[130px]">
-                  <SelectValue placeholder="Severity" />
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Risk Level" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Severities</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="all">All Risk Levels</SelectItem>
+                  <SelectItem value="low">Low Risk</SelectItem>
+                  <SelectItem value="medium">Moderate Risk</SelectItem>
+                  <SelectItem value="high">High Risk</SelectItem>
+                  <SelectItem value="critical">Critical</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -211,7 +226,7 @@ export default function AlertsPage() {
                 </SelectContent>
               </Select>
 
-              <Button variant="ghost" size="icon" onClick={resetFilters}>
+              <Button variant="ghost" size="icon" onClick={resetFilters} title="Clear all filters">
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -223,16 +238,16 @@ export default function AlertsPage() {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
             </div>
           ) : error ? (
-            <div className="text-center text-red-500">Error loading alerts. Please try again.</div>
+            <div className="text-center text-red-500">Error loading environmental alerts. Please try again.</div>
           ) : (
             <motion.div variants={containerVariants} initial="hidden" animate="show">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Time</TableHead>
-                    <TableHead>Alert Type</TableHead>
-                    <TableHead>Channel ID</TableHead>
-                    <TableHead>Severity</TableHead>
+                    <TableHead>Time Detected</TableHead>
+                    <TableHead>Sensor Type</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Risk Level</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -243,24 +258,34 @@ export default function AlertsPage() {
                       <TableCell colSpan={6} className="text-center py-8">
                         <div className="flex flex-col items-center justify-center gap-2">
                           <Info className="h-8 w-8 text-muted-foreground" />
-                          <p className="text-muted-foreground">No alerts match your filters</p>
-                          <Button variant="outline" size="sm" onClick={resetFilters}>
-                            Reset Filters
-                          </Button>
+                          <p className="text-muted-foreground">
+                            {searchQuery || severityFilter || acknowledgedFilter !== undefined
+                              ? "No environmental alerts match your current filters"
+                              : "No environmental alerts detected - Air quality is good!"}
+                          </p>
+                          {(searchQuery || severityFilter || acknowledgedFilter !== undefined) && (
+                            <Button variant="outline" size="sm" onClick={resetFilters}>
+                              Clear Filters
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
                   ) : (
                     filteredAlerts.map((alert) => (
                       <motion.tr key={alert.id} variants={itemVariants}>
-                        <TableCell>{format(new Date(alert.timestamp), "yyyy-MM-dd HH:mm:ss")}</TableCell>
+                        <TableCell>{format(new Date(alert.timestamp), "MMM dd, yyyy HH:mm")}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            {getPollutantIcon(alert.alertType)}
-                            {alert.alertType}
+                            {getSensorIcon(alert.alertType)}
+                            <span className="font-medium">{alert.alertType}</span>
                           </div>
                         </TableCell>
-                        <TableCell>{alert.channelId}</TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">
+                            {alert.sensorLocation || alert.channelId}
+                          </span>
+                        </TableCell>
                         <TableCell>{getSeverityBadge(alert.severity)}</TableCell>
                         <TableCell>{getStatusBadge(alert.acknowledged)}</TableCell>
                         <TableCell>
@@ -270,73 +295,82 @@ export default function AlertsPage() {
                                 View Details
                               </Button>
                             </DialogTrigger>
-                            <DialogContent>
+                            <DialogContent className="max-w-md">
                               <DialogHeader>
-                                <DialogTitle>Alert Details</DialogTitle>
-                                <DialogDescription>Detailed information about this air quality alert</DialogDescription>
+                                <DialogTitle>Environmental Alert Details</DialogTitle>
+                                <DialogDescription>Detailed information about this CityAir+ environmental alert</DialogDescription>
                               </DialogHeader>
                               {selectedAlert && (
                                 <div className="space-y-4 py-4">
-                                  <div className="flex justify-between">
-                                    <span className="font-medium">Alert ID:</span>
-                                    <span>{selectedAlert.id}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="font-medium">Timestamp:</span>
-                                    <span>{format(new Date(selectedAlert.timestamp), "yyyy-MM-dd HH:mm:ss")}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="font-medium">Alert Type:</span>
-                                    <div className="flex items-center gap-2">
-                                      {getPollutantIcon(selectedAlert.alertType)}
-                                      {selectedAlert.alertType}
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <span className="text-sm font-medium text-muted-foreground">Alert ID</span>
+                                      <p className="text-sm">#{selectedAlert.id}</p>
+                                    </div>
+                                    <div>
+                                      <span className="text-sm font-medium text-muted-foreground">Detected At</span>
+                                      <p className="text-sm">{format(new Date(selectedAlert.timestamp), "MMM dd, yyyy HH:mm")}</p>
                                     </div>
                                   </div>
-                                  <div className="flex justify-between">
-                                    <span className="font-medium">Channel ID:</span>
-                                    <span>{selectedAlert.channelId}</span>
+                                  
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <span className="text-sm font-medium text-muted-foreground">Sensor Type</span>
+                                      <div className="flex items-center gap-2 mt-1">
+                                        {getSensorIcon(selectedAlert.alertType)}
+                                        <span className="text-sm font-medium">{selectedAlert.alertType}</span>
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <span className="text-sm font-medium text-muted-foreground">Location</span>
+                                      <p className="text-sm">{selectedAlert.sensorLocation || selectedAlert.channelId}</p>
+                                    </div>
                                   </div>
-                                  <div className="flex justify-between">
-                                    <span className="font-medium">Severity:</span>
-                                    <span>{getSeverityBadge(selectedAlert.severity)}</span>
+
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <span className="text-sm font-medium text-muted-foreground">Risk Level</span>
+                                      <div className="mt-1">{getSeverityBadge(selectedAlert.severity)}</div>
+                                    </div>
+                                    <div>
+                                      <span className="text-sm font-medium text-muted-foreground">Status</span>
+                                      <div className="mt-1">{getStatusBadge(selectedAlert.acknowledged)}</div>
+                                    </div>
                                   </div>
-                                  <div className="flex justify-between">
-                                    <span className="font-medium">Status:</span>
-                                    <span>{getStatusBadge(selectedAlert.acknowledged)}</span>
-                                  </div>
+
                                   {selectedAlert.acknowledged && (
-                                    <>
-                                      <div className="flex justify-between">
-                                        <span className="font-medium">Acknowledged By:</span>
-                                        <span>{selectedAlert.user?.username || "Unknown"}</span>
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div>
+                                        <span className="text-sm font-medium text-muted-foreground">Resolved By</span>
+                                        <p className="text-sm">{selectedAlert.user?.username || "System"}</p>
                                       </div>
-                                      <div className="flex justify-between">
-                                        <span className="font-medium">Acknowledged At:</span>
-                                        <span>
+                                      <div>
+                                        <span className="text-sm font-medium text-muted-foreground">Resolved At</span>
+                                        <p className="text-sm">
                                           {selectedAlert.acknowledgedTimestamp
-                                            ? format(
-                                              new Date(selectedAlert.acknowledgedTimestamp),
-                                              "yyyy-MM-dd HH:mm:ss",
-                                            )
+                                            ? format(new Date(selectedAlert.acknowledgedTimestamp), "MMM dd, yyyy HH:mm")
                                             : "N/A"}
-                                        </span>
+                                        </p>
                                       </div>
-                                    </>
+                                    </div>
                                   )}
+
                                   <div className="pt-2">
-                                    <span className="font-medium">Message:</span>
-                                    <p className="mt-1 text-muted-foreground">{selectedAlert.message}</p>
+                                    <span className="text-sm font-medium text-muted-foreground">Alert Message</span>
+                                    <p className="mt-1 text-sm bg-muted p-3 rounded-md">{selectedAlert.message}</p>
                                   </div>
+
                                   <div className="pt-4 flex justify-end gap-2">
                                     {!selectedAlert.acknowledged && (
                                       <Button
                                         variant="outline"
                                         onClick={() => handleAcknowledgeAlert(selectedAlert.id)}
+                                        className="text-green-600 border-green-600 hover:bg-green-50"
                                       >
                                         Mark as Resolved
                                       </Button>
                                     )}
-                                    <Button>Close</Button>
+                                    <Button onClick={() => setSelectedAlert(null)}>Close</Button>
                                   </div>
                                 </div>
                               )}
@@ -355,4 +389,3 @@ export default function AlertsPage() {
     </div>
   )
 }
-

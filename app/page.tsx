@@ -59,7 +59,7 @@ export default function Home() {
                     </Button>
                   </Link>
                   <Link href="/contact">
-                    <Button size="lg" variant="outline">
+                    <Button size="lg" variant="outline" >
                       Contact Sales
                     </Button>
                   </Link>

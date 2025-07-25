@@ -79,7 +79,7 @@ export default function PrivacyPage() {
                     <strong>Secure Transmission:</strong> All data from IoT sensors to our cloud infrastructure is encrypted using industry-standard protocols to prevent tampering with climate data.
                   </li>
                   <li>
-                    <strong>Cloud Security:</strong> Environmental data is stored in secure Firebase and MongoDB databases with multiple layers of protection and regular backups.
+                    <strong>Cloud Security:</strong> Environmental data is stored in secure Firebase and MySQL databases with multiple layers of protection and regular backups.
                   </li>
                   <li>
                     <strong>Role-Based Access:</strong> We implement different access levels for citizens, government officials, environmental agencies, and system administrators based on the principle of data transparency with privacy protection.

@@ -36,7 +36,7 @@ interface PollutantReading {
   name: string
   value: number
   unit: string
-  status: "good" | "moderate" | "unhealthy"
+  status: "good" | "moderate" | "unhealthy" | "unhealthy-for-sensitive-groups" | "very-unhealthy" | "hazardous"
   icon: React.ReactNode
   change: number
   description: string
@@ -152,11 +152,7 @@ export default function Dashboard() {
     // Apply additional filters
     if (tableFilter === "high-co" && (!item.co || item.co <= 5)) {
       return false
-    } else if (tableFilter === "high-voc" && (!item.voc || item.voc <= 150)) {
-      return false
-    } else if (tableFilter === "high-pm25" && (!item.pm2_5 || item.pm2_5 <= 12)) {
-      return false
-    } else if (tableFilter === "high-pm10" && (!item.pm10 || item.pm10 <= 25)) {
+    } else if (tableFilter === "high-co2" && (!item.co2 || item.co2 <= 1000)) {
       return false
     }
 
@@ -169,18 +165,15 @@ export default function Dashboard() {
   const endIndex = startIndex + itemsPerPage
   const paginatedData = filteredTableData.slice(startIndex, endIndex)
 
-  // Process sensor data for chart
+  // Process sensor data for chart (last 100 readings)
   const chartData = sensorData
+    .slice(0, 100)
     .map((reading) => ({
       time: format(new Date(reading.timestamp), "HH:mm"),
       CO: reading.co || 0,
-      VOCs: reading.voc || 0,
-      NO2: 0, // Not in our database schema but kept for UI consistency
-      PM25: reading.pm2_5 || 0,
-      PM10: reading.pm10 || 0,
-      Methane: reading.methane || 0,
-      Humidity: reading.humidity || 0,
+      CO2: reading.co2 || 0,
       Temperature: reading.temperature || 0,
+      Humidity: reading.humidity || 0,
     }))
     .reverse()
 
@@ -192,14 +185,16 @@ export default function Dashboard() {
     switch (type) {
       case "CO":
         return value < 5 ? "good" : value < 10 ? "moderate" : "unhealthy"
-      case "VOCs":
-        return value < 150 ? "good" : value < 300 ? "moderate" : "unhealthy"
-      case "PM2.5":
-        return value < 12 ? "good" : value < 35 ? "moderate" : "unhealthy"
-      case "PM10":
-        return value < 50 ? "good" : value < 150 ? "moderate" : "unhealthy"
-      case "Methane":
-        return value < 1000 ? "good" : value < 5000 ? "moderate" : "unhealthy"
+      case "CO2":
+        return value < 1000 ? "good" : value < 2000 ? "moderate" : "unhealthy"
+      case "Humidity":
+        if (value < 30 || value > 70) return "unhealthy"
+        if (value < 40 || value > 60) return "moderate"
+        return "good"
+      case "Temperature":
+        if (value < 16 || value > 28) return "unhealthy"
+        if (value < 18 || value > 26) return "moderate"
+        return "good"
       default:
         return "good"
     }
@@ -221,6 +216,34 @@ export default function Dashboard() {
 
     const previousReading = sensorData[1]
 
+    // Calculate previous AQI for change
+    let previousAQI = 0
+    if (sensorData.length > 1) {
+      const prevData = sensorData[1]
+      let paqi = 0
+      if (prevData.pm2_5) {
+        const pm25 = prevData.pm2_5
+        if (pm25 <= 12) {
+          paqi = Math.round((50 / 12) * pm25)
+        } else if (pm25 <= 35.4) {
+          paqi = Math.round(51 + ((100 - 51) / (35.4 - 12.1)) * (pm25 - 12.1))
+        } else if (pm25 <= 55.4) {
+          paqi = Math.round(101 + ((150 - 101) / (55.4 - 35.5)) * (pm25 - 35.5))
+        } else if (pm25 <= 150.4) {
+          paqi = Math.round(151 + ((200 - 151) / (150.4 - 55.5)) * (pm25 - 55.5))
+        } else {
+          paqi = Math.round(201 + ((300 - 201) / (250.4 - 150.5)) * Math.min(250.4, pm25 - 150.5))
+        }
+      }
+      if (prevData.co && prevData.co > 9) {
+        paqi = Math.max(paqi, 101 + (prevData.co - 9) * 10)
+      }
+      if (prevData.voc && prevData.voc > 200) {
+        paqi = Math.max(paqi, 101 + (prevData.voc - 200) / 2)
+      }
+      previousAQI = Math.min(500, Math.max(0, Math.round(paqi)))
+    }
+
     return [
       {
         name: "Carbon Monoxide",
@@ -234,51 +257,48 @@ export default function Dashboard() {
           "Can cause headaches, dizziness, and at high levels, can be fatal by reducing oxygen delivery to organs.",
       },
       {
-        name: "VOCs",
-        value: latestReading.voc || 0,
-        unit: "ppb",
-        status: getStatus(latestReading.voc || 0, "VOCs"),
-        icon: <CloudFog className="h-5 w-5" />,
-        change: calculateChange(latestReading.voc, previousReading.voc),
-        description:
-          "Volatile Organic Compounds are chemicals that evaporate at room temperature, released from many industrial processes.",
-        healthEffects:
-          "Can cause eye, nose, and throat irritation, headaches, and some are suspected carcinogens with long-term exposure.",
-      },
-      {
-        name: "Methane",
-        value: latestReading.methane || 0,
+        name: "Carbon Dioxide",
+        value: latestReading.co2 || 0,
         unit: "ppm",
-        status: getStatus(latestReading.methane || 0, "Methane"),
-        icon: <Wind className="h-5 w-5" />,
-        change: calculateChange(latestReading.methane, previousReading.methane),
-        description:
-          "A potent greenhouse gas that is the primary component of natural gas, often released from industrial processes.",
+        status: getStatus(latestReading.co2 || 0, "CO2"),
+        icon: <CloudFog className="h-5 w-5" />,
+        change: calculateChange(latestReading.co2, previousReading.co2),
+        description: "A natural byproduct of respiration and combustion, used as an indicator of indoor ventilation in IoT air quality systems.",
         healthEffects:
-          "Not directly toxic at typical environmental levels, but can displace oxygen in confined spaces and is highly flammable.",
+          "Levels above 1000 ppm can cause drowsiness and poor concentration; very high levels (>5000 ppm) can lead to oxygen deprivation.",
       },
       {
-        name: "PM2.5",
-        value: latestReading.pm2_5 || 0,
-        unit: "μg/m³",
-        status: getStatus(latestReading.pm2_5 || 0, "PM2.5"),
+        name: "Humidity",
+        value: latestReading.humidity || 0,
+        unit: "%",
+        status: getStatus(latestReading.humidity || 0, "Humidity"),
         icon: <Droplets className="h-5 w-5" />,
-        change: calculateChange(latestReading.pm2_5, previousReading.pm2_5),
-        description: "Fine particulate matter with diameter less than 2.5 micrometers, can penetrate deep into lungs.",
+        change: calculateChange(latestReading.humidity, previousReading.humidity),
+        description: "Relative humidity level in the air, monitored in IoT systems to assess comfort and mold risk.",
         healthEffects:
-          "Can cause respiratory issues, aggravate asthma, and contribute to cardiovascular problems with long-term exposure.",
+          "Optimal range is 40-60%; low levels can dry out mucous membranes, high levels can encourage dust mites and mold.",
       },
       {
-        name: "PM10",
-        value: latestReading.pm10 || 0,
-        unit: "μg/m³",
-        status: getStatus(latestReading.pm10 || 0, "PM10"),
-        icon: <Gauge className="h-5 w-5" />,
-        change: calculateChange(latestReading.pm10, previousReading.pm10),
-        description:
-          "Coarse particulate matter with diameter less than 10 micrometers, includes dust, pollen, and mold.",
+        name: "Temperature",
+        value: latestReading.temperature || 0,
+        unit: "°C",
+        status: getStatus(latestReading.temperature || 0, "Temperature"),
+        icon: <Flame className="h-5 w-5" />,
+        change: calculateChange(latestReading.temperature, previousReading.temperature),
+        description: "Ambient air temperature, key for comfort and energy efficiency in air quality IoT projects.",
         healthEffects:
-          "Can cause respiratory irritation, coughing, and aggravate conditions like asthma and bronchitis.",
+          "Comfort range is 18-26°C; extremes can lead to heat stress, dehydration, or hypothermia.",
+      },
+      {
+        name: "Air Quality",
+        value: airQualityIndex,
+        unit: "",
+        status: aqiStatus.status.toLowerCase().replace(/ /g, "-") as PollutantReading["status"],
+        icon: <Gauge className="h-5 w-5" />,
+        change: calculateChange(airQualityIndex, previousAQI),
+        description: "Composite index based on pollutant levels, used in IoT dashboards to summarize overall air quality.",
+        healthEffects:
+          "Values over 100 indicate potential health risks, especially for sensitive groups like children and the elderly.",
       },
     ]
   }
@@ -292,8 +312,14 @@ export default function Dashboard() {
         return "bg-green-500"
       case "moderate":
         return "bg-yellow-500"
+      case "unhealthy-for-sensitive-groups":
+        return "bg-orange-500"
       case "unhealthy":
         return "bg-red-500"
+      case "very-unhealthy":
+        return "bg-purple-500"
+      case "hazardous":
+        return "bg-rose-900"
       default:
         return "bg-gray-500"
     }
@@ -577,7 +603,7 @@ export default function Dashboard() {
                             </div>
                             <div className="pt-2 border-t">
                               <p className="text-sm font-medium">Current Status:</p>
-                              <p className="text-sm capitalize">{pollutant.status}</p>
+                              <p className="text-sm capitalize">{pollutant.status.replace(/-/g, " ")}</p>
                             </div>
                           </div>
                         </TooltipContent>
@@ -593,7 +619,7 @@ export default function Dashboard() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <BarChart3 className="h-5 w-5" />
-                      Air Quality Trends (Last {sensorData.length} Readings)
+                      Air Quality Trends (Last 100 Readings)
                     </CardTitle>
                     <CardDescription>Monitor changes in pollutant levels over time</CardDescription>
                   </CardHeader>
@@ -607,10 +633,9 @@ export default function Dashboard() {
                           <Tooltip />
                           <Legend />
                           <Line type="monotone" dataKey="CO" stroke="hsl(var(--chart-co))" activeDot={{ r: 8 }} />
-                          <Line type="monotone" dataKey="VOCs" stroke="hsl(var(--chart-vocs))" />
-                          <Line type="monotone" dataKey="PM25" stroke="hsl(var(--chart-pm25))" />
-                          <Line type="monotone" dataKey="PM10" stroke="hsl(var(--chart-pm10))" />
-                          <Line type="monotone" dataKey="Methane" stroke="hsl(var(--chart-no2))" />
+                          <Line type="monotone" dataKey="CO2" stroke="hsl(var(--chart-no2))" />
+                          <Line type="monotone" dataKey="Temperature" stroke="hsl(var(--chart-pm25))" />
+                          <Line type="monotone" dataKey="Humidity" stroke="hsl(var(--chart-pm10))" />
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
@@ -633,11 +658,10 @@ export default function Dashboard() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Locations</SelectItem>
-                          {Array.from(new Set(sensorData.map((item) => item.location))).map((location) => (
-                            <SelectItem key={location} value={location}>
-                              {location}
-                            </SelectItem>
-                          ))}
+                          <SelectItem value="kampala">Kampala</SelectItem>
+                          <SelectItem value="bukoto">Bukoto</SelectItem>
+                          <SelectItem value="entebbe">Entebbe</SelectItem>
+                          <SelectItem value="jinja">Jinja</SelectItem>
                         </SelectContent>
                       </Select>
 
@@ -648,9 +672,7 @@ export default function Dashboard() {
                         <SelectContent>
                           <SelectItem value="all">All Readings</SelectItem>
                           <SelectItem value="high-co">High CO</SelectItem>
-                          <SelectItem value="high-voc">High VOC</SelectItem>
-                          <SelectItem value="high-pm25">High PM2.5</SelectItem>
-                          <SelectItem value="high-pm10">High PM10</SelectItem>
+                          <SelectItem value="high-co2">High CO2</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -662,10 +684,7 @@ export default function Dashboard() {
                           <TableHead>Time</TableHead>
                           <TableHead>Location</TableHead>
                           <TableHead>CO (ppm)</TableHead>
-                          <TableHead>VOCs (ppb)</TableHead>
-                          <TableHead>Methane (ppm)</TableHead>
-                          <TableHead>PM2.5 (μg/m³)</TableHead>
-                          <TableHead>PM10 (μg/m³)</TableHead>
+                          <TableHead>CO2 (ppm)</TableHead>
                           <TableHead>Temp (°C)</TableHead>
                           <TableHead>Humidity (%)</TableHead>
                         </TableRow>
@@ -673,7 +692,7 @@ export default function Dashboard() {
                       <TableBody>
                         {filteredTableData.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={9} className="text-center py-8">
+                            <TableCell colSpan={6} className="text-center py-8">
                               No data matches your current filters
                             </TableCell>
                           </TableRow>
@@ -685,23 +704,8 @@ export default function Dashboard() {
                               <TableCell className={reading.co && reading.co > 5 ? "text-red-500 font-medium" : ""}>
                                 {reading.co?.toFixed(2) || "N/A"}
                               </TableCell>
-                              <TableCell className={reading.voc && reading.voc > 150 ? "text-red-500 font-medium" : ""}>
-                                {reading.voc?.toFixed(2) || "N/A"}
-                              </TableCell>
-                              <TableCell
-                                className={reading.methane && reading.methane > 1000 ? "text-red-500 font-medium" : ""}
-                              >
-                                {reading.methane?.toFixed(2) || "N/A"}
-                              </TableCell>
-                              <TableCell
-                                className={reading.pm2_5 && reading.pm2_5 > 12 ? "text-red-500 font-medium" : ""}
-                              >
-                                {reading.pm2_5?.toFixed(2) || "N/A"}
-                              </TableCell>
-                              <TableCell
-                                className={reading.pm10 && reading.pm10 > 25 ? "text-red-500 font-medium" : ""}
-                              >
-                                {reading.pm10?.toFixed(2) || "N/A"}
+                              <TableCell className={reading.co2 && reading.co2 > 1000 ? "text-red-500 font-medium" : ""}>
+                                {reading.co2?.toFixed(2) || "N/A"}
                               </TableCell>
                               <TableCell>{reading.temperature?.toFixed(2) || "N/A"}</TableCell>
                               <TableCell>{reading.humidity?.toFixed(2) || "N/A"}</TableCell>

@@ -56,7 +56,7 @@ export default function UsersPage() {
     username: "",
     email: "",
     password: "",
-    role: "Operator",
+    role: "Resident",
   })
 
   // Fetch users
@@ -117,7 +117,7 @@ export default function UsersPage() {
       username: "",
       email: "",
       password: "",
-      role: "Operator",
+      role: "Resident",
     })
     setIsEditMode(false)
     setSelectedUser(null)
@@ -201,21 +201,42 @@ export default function UsersPage() {
     }
   }
 
-  // Get role badge
+  // Get role badge with CityAir+ specific roles
   const getRoleBadge = (role: string) => {
     switch (role.toLowerCase()) {
       case "admin":
         return (
-          <Badge variant="outline" className="border-primary text-primary">
+          <Badge variant="outline" className="border-red-500 text-red-500">
             <Shield className="mr-1 h-3 w-3" />
             Admin
           </Badge>
         )
-      case "manager":
+      case "environmental officer":
+        return (
+          <Badge variant="outline" className="border-green-500 text-green-500">
+            <Shield className="mr-1 h-3 w-3" />
+            Environmental Officer
+          </Badge>
+        )
+      case "city official":
         return (
           <Badge variant="outline" className="border-blue-500 text-blue-500">
             <User className="mr-1 h-3 w-3" />
-            Manager
+            City Official
+          </Badge>
+        )
+      case "researcher":
+        return (
+          <Badge variant="outline" className="border-purple-500 text-purple-500">
+            <User className="mr-1 h-3 w-3" />
+            Researcher
+          </Badge>
+        )
+      case "resident":
+        return (
+          <Badge variant="outline" className="border-gray-500 text-gray-500">
+            <User className="mr-1 h-3 w-3" />
+            Resident
           </Badge>
         )
       default:
@@ -263,9 +284,9 @@ export default function UsersPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <User className="h-5 w-5" />
-            System Users
+            CityAir+ Community Users
           </CardTitle>
-          <CardDescription>Manage users and their access permissions</CardDescription>
+          <CardDescription>Manage users and their access permissions for the CityAir+ monitoring system</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Search and Filters */}
@@ -273,7 +294,7 @@ export default function UsersPage() {
             <div className="relative flex-1">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search users..."
+                placeholder="Search community members..."
                 className="pl-8"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -299,7 +320,7 @@ export default function UsersPage() {
                     <TableHead>Username</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
-                    <TableHead>Created</TableHead>
+                    <TableHead>Joined</TableHead>
                     {isAdmin && <TableHead className="text-right">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
@@ -309,7 +330,7 @@ export default function UsersPage() {
                       <TableCell colSpan={isAdmin ? 5 : 4} className="text-center py-8">
                         <div className="flex flex-col items-center justify-center gap-2">
                           <User className="h-8 w-8 text-muted-foreground" />
-                          <p className="text-muted-foreground">No users found</p>
+                          <p className="text-muted-foreground">No community members found</p>
                           {searchQuery && (
                             <Button variant="outline" size="sm" onClick={() => setSearchQuery("")}>
                               Clear Search
@@ -341,9 +362,9 @@ export default function UsersPage() {
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                    <AlertDialogTitle>Remove User</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Are you sure you want to delete {user.username}? This action cannot be undone.
+                                      Are you sure you want to remove {user.username} from the CityAir+ community? This action cannot be undone and they will lose access to all air quality data and alerts.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
@@ -352,7 +373,7 @@ export default function UsersPage() {
                                       className="bg-destructive text-destructive-foreground"
                                       onClick={() => handleDeleteUser(user.id)}
                                     >
-                                      Delete
+                                      Remove User
                                     </AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
@@ -374,11 +395,11 @@ export default function UsersPage() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{isEditMode ? "Edit User" : "Create New User"}</DialogTitle>
+            <DialogTitle>{isEditMode ? "Edit Community Member" : "Add Community Member"}</DialogTitle>
             <DialogDescription>
               {isEditMode
-                ? "Update user information and permissions"
-                : "Add a new user to the system with appropriate permissions"}
+                ? "Update community member information and access permissions"
+                : "Add a new member to the CityAir+ community with appropriate access level"}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit}>
@@ -406,17 +427,17 @@ export default function UsersPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
+                <Label htmlFor="role">Access Level</Label>
                 <Select value={formData.role} onValueChange={handleRoleChange}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a role" />
+                    <SelectValue placeholder="Select access level" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Admin">Admin</SelectItem>
-                    <SelectItem value="Manager">Manager</SelectItem>
-                    <SelectItem value="Operator">Operator</SelectItem>
-                    <SelectItem value="Technician">Technician</SelectItem>
-                    <SelectItem value="Viewer">Viewer</SelectItem>
+                    <SelectItem value="Admin">Admin - Full system access</SelectItem>
+                    <SelectItem value="Environmental Officer">Environmental Officer - Data management & alerts</SelectItem>
+                    <SelectItem value="City Official">City Official - Policy & reporting access</SelectItem>
+                    <SelectItem value="Researcher">Researcher - Data analysis & export</SelectItem>
+                    <SelectItem value="Resident">Resident - Basic monitoring & personal alerts</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -425,7 +446,7 @@ export default function UsersPage() {
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit">{isEditMode ? "Update User" : "Create User"}</Button>
+              <Button type="submit">{isEditMode ? "Update Member" : "Add Member"}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -433,4 +454,3 @@ export default function UsersPage() {
     </div>
   )
 }
-

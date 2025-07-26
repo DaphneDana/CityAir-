@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { ArrowRight, BarChart3, Bell, Gauge } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 
 export default function Home() {
   return (
@@ -28,9 +29,9 @@ export default function Home() {
           </nav>
           <div className="flex items-center gap-4">
             <Link href="/dashboard">
-              <Button variant="outline">Dashboard</Button>
+              <Button variant="outline">Admin Dashboard</Button>
             </Link>
-            <Link href="/dashboard">
+            <Link href="/public-monitor">
               <Button>Get Started</Button>
             </Link>
           </div>
@@ -53,14 +54,14 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <Link href="/dashboard">
+                  <Link href="/public-monitor">
                     <Button size="lg" className="gap-1">
-                      Get Started <ArrowRight className="h-4 w-4" />
+                      View Live Air Quality <ArrowRight className="h-4 w-4" />
                     </Button>
                   </Link>
                   <Link href="/contact">
                     <Button size="lg" variant="outline">
-                      Contact Sales
+                      Contact Us
                     </Button>
                   </Link>
                 </div>
@@ -68,13 +69,32 @@ export default function Home() {
               <div className="flex items-center justify-center">
                 <div className="relative h-[350px] w-[350px] sm:h-[400px] sm:w-[400px] lg:h-[500px] lg:w-[500px]">
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-teal-500 rounded-full opacity-20 blur-3xl"></div>
-                  <img
-                    src="/showcase.jpeg?height=500&width=500"
-                    alt="Dashboard Preview"
-                    className="relative z-10 rounded-lg border shadow-xl"
-                    width={500}
-                    height={500}
-                  />
+                  {/* Using your actual image from public/image.png */}
+                  <div className="relative z-10 rounded-lg overflow-hidden shadow-xl">
+                    <Image
+                      src="/image.png"
+                      alt="CityAir+ Dashboard Preview - Real-time Air Quality Monitoring"
+                      width={500}
+                      height={500}
+                      className="rounded-lg object-cover w-full h-full"
+                      priority
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover'
+                      }}
+                    />
+                    {/* Optional overlay with branding - you can remove this if you don't want it */}
+                    <div className="absolute bottom-4 left-4 right-4">
+                      <div className="bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Gauge className="h-4 w-4 text-primary" />
+                          <span className="font-semibold text-primary">CityAir+</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Real-time Environmental Monitoring</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -181,14 +201,14 @@ export default function Home() {
                 </p>
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                <Link href="/dashboard">
+                <Link href="/public-monitor">
                   <Button size="lg" variant="secondary" className="gap-1">
-                    Get Started <ArrowRight className="h-4 w-4" />
+                    View Live Data <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
                 <Link href="/contact">
                   <Button size="lg" variant="outline" className="border-primary-foreground">
-                    Contact Sales
+                    Contact Us
                   </Button>
                 </Link>
               </div>
@@ -220,4 +240,3 @@ export default function Home() {
     </div>
   )
 }
-

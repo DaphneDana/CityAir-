@@ -32,7 +32,7 @@ export default function Home() {
               <Button variant="outline">Admin Dashboard</Button>
             </Link>
             <Link href="/public-monitor">
-              <Button>Get Started</Button>
+              <Button>View Live Air Quality</Button>
             </Link>
           </div>
         </div>
@@ -118,28 +118,27 @@ export default function Home() {
                 <div className="rounded-full bg-primary/10 p-4">
                   <Gauge className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-bold">Real-time Monitoring and display</h3>
+                <h3 className="text-xl font-bold">Real-time Environmental Monitoring</h3>
                 <p className="text-center text-muted-foreground">
-                  Track air quality metrics in real-time with accurate sensors and instant data processing.
+                  Track carbon monoxide, air quality, temperature, and humidity with our MQ-9, MQ-135, and DHT-11 sensors for instant environmental data processing.
                 </p>
               </div>
               <div className="flex flex-col items-center space-y-4 rounded-lg border p-6 shadow-sm">
                 <div className="rounded-full bg-primary/10 p-4">
                   <BarChart3 className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-bold">Advanced Analytics</h3>
+                <h3 className="text-xl font-bold">Climate Data Analytics</h3>
                 <p className="text-center text-muted-foreground">
-                  Gain insights with powerful analytics tools that help identify patterns and predict air quality
-                  trends around your city
+                  Gain insights with powerful environmental analytics tools that help identify pollution patterns and predict climate trends to support sustainable urban planning decisions.
                 </p>
               </div>
               <div className="flex flex-col items-center space-y-4 rounded-lg border p-6 shadow-sm">
                 <div className="rounded-full bg-primary/10 p-4">
                   <Bell className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-bold">Instant Alerts</h3>
+                <h3 className="text-xl font-bold">Environmental Alerts & Notifications</h3>
                 <p className="text-center text-muted-foreground">
-                  Receive immediate notifications  and display when air quality levels exceed your defined thresholds.
+                  Receive immediate environmental alerts and public notifications when pollution levels, CO emissions, or climate conditions exceed safe thresholds for community health protection.
                 </p>
               </div>
             </div>
@@ -173,15 +172,15 @@ export default function Home() {
                 </p>
               </div>
               <div className="space-y-4">
-                <h3 className="text-xl font-bold">Increased Productivity</h3>
+                <h3 className="text-xl font-bold">Smart Environmental Health Monitoring</h3>
                 <p className="text-muted-foreground">
-                  Better air quality leads to improved weather conditions, enhancing productivity and well-being in urban areas.
+                  CityAir+ transforms urban environmental health through continuous air quality monitoring, helping cities reduce pollution exposure, protect vulnerable populations, and create healthier communities through data-driven environmental interventions and real-time public health guidance.
                 </p>
               </div>
               <div className="space-y-4">
-                <h3 className="text-xl font-bold">Data-Driven Decisions</h3>
+                <h3 className="text-xl font-bold">Evidence-Based Climate Policy</h3>
                 <p className="text-muted-foreground">
-                  Make informed decisions based on comprehensive air quality data and analytics that can be used to mitigate pollution, improve weather conditions, and enhance overall urban livability.
+                  Make informed environmental policy decisions based on comprehensive air quality data and climate analytics that enable cities to implement targeted pollution reduction strategies, meet environmental regulations, and achieve sustainable development goals.
                 </p>
               </div>
             </div>
@@ -194,21 +193,21 @@ export default function Home() {
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                  Ready to Improve Urban Air Quality?
+                  Ready to Transform Your City's Environmental Health?
                 </h2>
                 <p className="max-w-[900px] md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Start monitoring your urban environment today with CityAir+.
+                  Join the environmental monitoring revolution and start building a cleaner, healthier urban future with CityAir+ today.
                 </p>
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
                 <Link href="/public-monitor">
                   <Button size="lg" variant="secondary" className="gap-1">
-                    View Live Data <ArrowRight className="h-4 w-4" />
+                    Start Environmental Monitoring <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
                 <Link href="/contact">
                   <Button size="lg" variant="outline" className="border-primary-foreground">
-                    Contact Us
+                    Contact Environmental Experts
                   </Button>
                 </Link>
               </div>

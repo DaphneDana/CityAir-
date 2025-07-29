@@ -13,13 +13,12 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/contexts/auth-context"
-import { useSensorData } from "@/hooks/use-sensor-data"
 import { Bell, LogOut, Search } from "lucide-react"
 import { useTheme } from "next-themes"
 import Link from "next/link"
 import { useEffect, useState } from "react"
-
-// Import the useThingSpeakData hook at the top of the file
+import { useSensorData } from "@/hooks/use-sensor-data"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useThingSpeakData } from "@/hooks/use-thingspeak-data"
 
 export function AppTopbar() {
@@ -31,19 +30,19 @@ export function AppTopbar() {
 
   // Fetch the latest sensor data for AQI calculation
   const { data: sensorData } = useSensorData(1)
-  const { latestData: thingSpeakData, isLoading: isThingSpeakLoading } = useThingSpeakData()
+  const { data: thingSpeakData } = useThingSpeakData()
 
   // Add these state variables at the top of the component
   const [badgeCount, setBadgeCount] = useState(3)
   const [notifications, setNotifications] = useState([
     {
-      title: "High PM2.5 Levels",
-      message: "PM2.5 levels have exceeded threshold in Zone A",
+      title: "High Temperature Alert",
+      message: "Temperature has exceeded 35°C in Zone A",
       time: "2 minutes ago",
     },
     {
-      title: "VOC Alert",
-      message: "VOC levels rising in Zone C",
+      title: "CO Level Warning",
+      message: "CO levels rising in monitoring area",
       time: "15 minutes ago",
     },
     {
@@ -71,45 +70,32 @@ export function AppTopbar() {
   // Calculate AQI based on actual sensor data from ThingSpeak
   useEffect(() => {
     // Use ThingSpeak data if available, otherwise fall back to database data
-    const dataSource = thingSpeakData || (sensorData && sensorData.length > 0 ? sensorData[0] : null)
+    const dataSource =
+      thingSpeakData && thingSpeakData.length > 0
+        ? thingSpeakData[0]
+        : sensorData && sensorData.length > 0
+          ? sensorData[0]
+          : null
+
+    console.log("Topbar: Data source for AQI calculation:", dataSource)
 
     if (dataSource) {
-      // Calculate AQI based on EPA formula (simplified)
-      // Using PM2.5 as the primary indicator
+      // Calculate AQI based on Air Quality field (field4)
       let aqi = 0
 
       if (dataSource.pm2_5) {
-        // PM2.5 to AQI conversion (simplified)
-        const pm25 = dataSource.pm2_5
-
-        if (pm25 <= 12) {
-          // Good: 0-50 AQI for PM2.5 0-12 µg/m³
-          aqi = Math.round((50 / 12) * pm25)
-        } else if (pm25 <= 35.4) {
-          // Moderate: 51-100 AQI for PM2.5 12.1-35.4 µg/m³
-          aqi = Math.round(51 + ((100 - 51) / (35.4 - 12.1)) * (pm25 - 12.1))
-        } else if (pm25 <= 55.4) {
-          // Unhealthy for Sensitive Groups: 101-150 AQI
-          aqi = Math.round(101 + ((150 - 101) / (55.4 - 35.5)) * (pm25 - 35.5))
-        } else if (pm25 <= 150.4) {
-          // Unhealthy: 151-200 AQI
-          aqi = Math.round(151 + ((200 - 151) / (150.4 - 55.5)) * (pm25 - 55.5))
-        } else {
-          // Very Unhealthy to Hazardous: 201+ AQI
-          aqi = Math.round(201 + ((300 - 201) / (250.4 - 150.5)) * Math.min(250.4, pm25 - 150.5))
-        }
+        // Use the Air Quality value directly as AQI
+        aqi = dataSource.pm2_5
       }
 
-      // Adjust AQI based on other pollutants
-      if (dataSource.co && dataSource.co > 9) {
-        aqi = Math.max(aqi, 101 + (dataSource.co - 9) * 10)
+      // Adjust AQI based on CO levels
+      if (dataSource.co && dataSource.co > 50) {
+        aqi = Math.max(aqi, 101 + (dataSource.co - 50) * 2)
       }
 
-      if (dataSource.voc && dataSource.voc > 200) {
-        aqi = Math.max(aqi, 101 + (dataSource.voc - 200) / 2)
-      }
-
-      setAirQualityIndex(Math.min(500, Math.max(0, Math.round(aqi))))
+      const calculatedAqi = Math.min(500, Math.max(0, Math.round(aqi)))
+      console.log("Topbar: Calculated AQI:", calculatedAqi)
+      setAirQualityIndex(calculatedAqi)
     }
   }, [thingSpeakData, sensorData])
 
@@ -197,55 +183,56 @@ export function AppTopbar() {
       </div>
 
       <div className="flex items-center gap-4">
-        {/* <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center gap-2 text-sm cursor-help">
-              <div className={`h-2 w-2 rounded-full ${color}`} />
-              <span>AQI: {airQualityIndex}</span>
-              <span className="text-muted-foreground">({status})</span>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent className="w-80">
-            <div className="space-y-2">
-              <p className="font-medium">Air Quality Index: {airQualityIndex}</p>
-              <p>Status: {status}</p>
-              <p className="text-sm text-muted-foreground">
-                The Air Quality Index (AQI) is calculated based on the concentration of pollutants, primarily PM2.5,
-                CO, and VOCs. Values below 50 are considered good, 51-100 moderate, 101-150 unhealthy for sensitive
-                groups, and above 150 unhealthy for all.
-              </p>
-              <div className="pt-2 border-t">
-                <p className="text-sm font-medium">
-                  Current Readings {thingSpeakData ? "(Live from ThingSpeak)" : "(From Database)"}:
-                </p>
-                <ul className="text-sm">
-                  {thingSpeakData ? (
-                    <>
-                      <li>PM2.5: {thingSpeakData.pm2_5?.toFixed(2) || "N/A"} μg/m³</li>
-                      <li>PM10: {thingSpeakData.pm10?.toFixed(2) || "N/A"} μg/m³</li>
-                      <li>CO: {thingSpeakData.co?.toFixed(2) || "N/A"} ppm</li>
-                      <li>VOCs: {thingSpeakData.voc?.toFixed(2) || "N/A"} ppb</li>
-                      <li className="text-xs text-muted-foreground mt-1">
-                        Last updated: {new Date(thingSpeakData.timestamp).toLocaleTimeString()}
-                      </li>
-                    </>
-                  ) : sensorData && sensorData.length > 0 ? (
-                    <>
-                      <li>PM2.5: {sensorData[0].pm2_5?.toFixed(2) || "N/A"} μg/m³</li>
-                      <li>PM10: {sensorData[0].pm10?.toFixed(2) || "N/A"} μg/m³</li>
-                      <li>CO: {sensorData[0].co?.toFixed(2) || "N/A"} ppm</li>
-                      <li>VOCs: {sensorData[0].voc?.toFixed(2) || "N/A"} ppb</li>
-                    </>
-                  ) : (
-                    <li>Loading data...</li>
-                  )}
-                </ul>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-2 text-sm cursor-help">
+                <div className={`h-2 w-2 rounded-full ${color}`} />
+                <span>AQI: {airQualityIndex}</span>
+                <span className="text-muted-foreground">({status})</span>
               </div>
-            </div>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider> */}
+            </TooltipTrigger>
+            <TooltipContent className="w-80">
+              <div className="space-y-2">
+                <p className="font-medium">Air Quality Index: {airQualityIndex}</p>
+                <p>Status: {status}</p>
+                <p className="text-sm text-muted-foreground">
+                  The Air Quality Index (AQI) is calculated based on the concentration of pollutants. Values below 50
+                  are considered good, 51-100 moderate, 101-150 unhealthy for sensitive groups, and above 150 unhealthy
+                  for all.
+                </p>
+                <div className="pt-2 border-t">
+                  <p className="text-sm font-medium">
+                    Current Readings{" "}
+                    {thingSpeakData && thingSpeakData.length > 0 ? "(Live from ThingSpeak)" : "(From Database)"}:
+                  </p>
+                  <ul className="text-sm">
+                    {thingSpeakData && thingSpeakData.length > 0 ? (
+                      <>
+                        <li>Temperature: {thingSpeakData[0].temperature?.toFixed(1) || "N/A"} °C</li>
+                        <li>Humidity: {thingSpeakData[0].humidity?.toFixed(1) || "N/A"} %</li>
+                        <li>CO: {thingSpeakData[0].co?.toFixed(0) || "N/A"} ppm</li>
+                        <li>Air Quality: {thingSpeakData[0].pm2_5?.toFixed(0) || "N/A"}</li>
+                        <li className="text-xs text-muted-foreground mt-1">
+                          Last updated: {new Date(thingSpeakData[0].timestamp).toLocaleTimeString()}
+                        </li>
+                      </>
+                    ) : sensorData && sensorData.length > 0 ? (
+                      <>
+                        <li>Temperature: {sensorData[0].temperature?.toFixed(1) || "N/A"} °C</li>
+                        <li>Humidity: {sensorData[0].humidity?.toFixed(1) || "N/A"} %</li>
+                        <li>CO: {sensorData[0].co?.toFixed(0) || "N/A"} ppm</li>
+                        <li>Air Quality: {sensorData[0].pm2_5?.toFixed(0) || "N/A"}</li>
+                      </>
+                    ) : (
+                      <li>Loading data...</li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 
         <div className="text-sm text-muted-foreground">{currentTime}</div>
 

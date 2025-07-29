@@ -31,7 +31,7 @@ import {
   CheckCircle,
   Info,
   MapPin,
-  Activity
+  Activity,
 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import type { DateRange } from "react-day-picker"
@@ -48,17 +48,22 @@ import {
   YAxis,
 } from "recharts"
 import { toast } from "sonner"
+import { useTheme } from "next-themes"
+import { CITY_LOCATIONS } from "@/lib/thingspeak"
 
-// Enhanced Types for CityAir+
+// Types for real sensor data
 interface SensorData {
   id: number
-  sensorLocation: string
+  channelId: string
   location: string
   timestamp: string
-  co: number | null // MQ-9 sensor
-  airQuality: number | null // MQ-135 sensor (AQI)
-  temperature: number | null // DHT-11 sensor
-  humidity: number | null // DHT-11 sensor
+  co: number | null
+  pm2_5: number | null // Air Quality from ThingSpeak field4
+  temperature: number | null
+  humidity: number | null
+  pm10: number | null
+  voc: number | null
+  methane: number | null
 }
 
 interface SummaryData {
@@ -89,43 +94,11 @@ interface LocationInsight {
   trendSummary: string
 }
 
-// Mock comprehensive data for CityAir+
-const mockLocations = ["Downtown Central", "Residential North", "Industrial East", "Park South", "University District"]
-
-const generateMockData = (location: string, days: number): SensorData[] => {
-  const data: SensorData[] = []
-  const baseValues = {
-    "Downtown Central": { co: 4.2, airQuality: 165, temperature: 28, humidity: 65 },
-    "Residential North": { co: 2.1, airQuality: 85, temperature: 25, humidity: 70 },
-    "Industrial East": { co: 7.3, airQuality: 245, temperature: 31, humidity: 55 },
-    "Park South": { co: 1.2, airQuality: 45, temperature: 24, humidity: 75 },
-    "University District": { co: 2.8, airQuality: 110, temperature: 26, humidity: 68 }
-  }
-
-  const base = baseValues[location as keyof typeof baseValues] || baseValues["Downtown Central"]
-
-  for (let i = 0; i < days; i++) {
-    const date = subDays(new Date(), days - i)
-    const variance = 0.8 + Math.random() * 0.4
-    
-    data.push({
-      id: i,
-      sensorLocation: location,
-      location,
-      timestamp: date.toISOString(),
-      co: +(base.co * variance).toFixed(2),
-      airQuality: Math.round(base.airQuality * variance),
-      temperature: +(base.temperature + (Math.random() - 0.5) * 6).toFixed(1),
-      humidity: Math.round(base.humidity + (Math.random() - 0.5) * 20)
-    })
-  }
-  return data
-}
-
 export default function ReportsPage() {
   const { user } = useAuth()
+  const { theme } = useTheme()
   const [activeTab, setActiveTab] = useState("summary")
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   // Date range state
@@ -135,7 +108,7 @@ export default function ReportsPage() {
   })
 
   // Filter states
-  const [locations] = useState<string[]>(mockLocations)
+  const [locations] = useState<string[]>(CITY_LOCATIONS)
   const [selectedLocation, setSelectedLocation] = useState<string>("all")
   const [selectedParameter, setSelectedParameter] = useState<string>("all")
 
@@ -149,95 +122,146 @@ export default function ReportsPage() {
   const summaryCardRef = useRef<HTMLDivElement>(null)
   const chartCardRef = useRef<HTMLDivElement>(null)
 
-  // Generate comprehensive mock data
-  const generateReportData = () => {
-    setIsLoading(true)
-    setError(null)
-    
-    // Simulate API delay
-    setTimeout(() => {
-      try {
-        const days = dateRange?.from && dateRange?.to ? 
-          Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24)) : 30
+  // Fetch real report data from API
+  const fetchReportData = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
 
-        let allData: SensorData[] = []
-        
-        if (selectedLocation === "all") {
-          locations.forEach(location => {
-            allData = [...allData, ...generateMockData(location, days)]
-          })
-        } else {
-          allData = generateMockData(selectedLocation, days)
-        }
+      // Build query params
+      const params = new URLSearchParams()
+      if (dateRange?.from) params.append("startDate", dateRange.from.toISOString())
+      if (dateRange?.to) params.append("endDate", dateRange.to.toISOString())
+      if (selectedLocation !== "all") params.append("location", selectedLocation)
+      if (selectedParameter !== "all") params.append("parameter", selectedParameter)
 
-        setSensorData(allData)
-        
-        // Process chart data
-        const processedChartData = processChartData(allData)
-        setChartData(processedChartData)
+      const response = await fetch(`/api/reports?${params.toString()}`)
 
-        // Process summary data
-        const processedSummaryData = processSummaryData(allData)
-        setSummaryData(processedSummaryData)
-
-        // Generate location insights
-        const insights = generateLocationInsights(allData)
-        setLocationInsights(insights)
-
-        // Track activity
-        if (user?.id) {
-          addActivity("Environmental Report Generated", `Generated CityAir+ report for ${formatDateRange(dateRange)}`)
-        }
-
-        setIsLoading(false)
-      } catch (err) {
-        setError("Failed to generate report data")
-        setIsLoading(false)
+      if (!response.ok) {
+        throw new Error("Failed to fetch report data")
       }
-    }, 1000)
+
+      const data = await response.json()
+
+      // Process sensor data
+      setSensorData(data.sensorData || [])
+
+      // Process chart data
+      const processedChartData = processChartData(data.sensorData || [])
+      setChartData(processedChartData)
+
+      // Process summary data
+      const processedSummaryData = processSummaryData(data.sensorData || [])
+      setSummaryData(processedSummaryData)
+
+      // Generate location insights
+      const insights = generateLocationInsights(data.sensorData || [])
+      setLocationInsights(insights)
+
+      // Track activity in local storage
+      if (user?.id) {
+        addActivity("Environmental Report Generated", `Generated report for ${formatDateRange(dateRange)}`)
+      }
+    } catch (error) {
+      console.error("Error fetching report data:", error)
+      setError(error instanceof Error ? error.message : "An unknown error occurred")
+      toast.error("Failed to load report data")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  // Process sensor data for charts (CityAir+ specific)
+  // Get chart colors based on theme
+  const getChartColors = () => {
+    const isDark = theme === "dark"
+    return {
+      co: isDark ? "#ef4444" : "#dc2626",
+      airQuality: isDark ? "#3b82f6" : "#2563eb",
+      temperature: isDark ? "#f97316" : "#ea580c",
+      humidity: isDark ? "#06b6d4" : "#0891b2",
+      grid: isDark ? "#374151" : "#e5e7eb",
+      text: isDark ? "#f3f4f6" : "#374151",
+      background: isDark ? "#1f2937" : "#ffffff",
+    }
+  }
+
+  // Custom tooltip formatter for line chart
+  const customLineTooltipFormatter = (value: any, name: string, props: any) => {
+    const parameterMap: { [key: string]: { label: string; unit: string } } = {
+      CO: { label: "Carbon Monoxide", unit: "ppm" },
+      AirQuality: { label: "Air Quality", unit: "AQI" },
+      Temperature: { label: "Temperature", unit: "°C" },
+      Humidity: { label: "Humidity", unit: "%RH" },
+    }
+
+    const param = parameterMap[name] || { label: name, unit: "" }
+    return [`${value} ${param.unit}`, param.label]
+  }
+
+  // Custom tooltip formatter for bar chart
+  const customBarTooltipFormatter = (value: any, name: string, props: any) => {
+    const parameterMap: { [key: string]: { label: string; unit: string } } = {
+      CO: { label: "Carbon Monoxide", unit: "ppm" },
+      AirQuality: { label: "Air Quality", unit: "AQI" },
+      Temperature: { label: "Temperature", unit: "°C" },
+      Humidity: { label: "Humidity", unit: "%RH" },
+    }
+
+    const param = parameterMap[name] || { label: name, unit: "" }
+    return [`${value} ${param.unit}`, param.label]
+  }
+
+  // Process sensor data for charts
   const processChartData = (data: SensorData[]): ChartData[] => {
+    // Group data by day for better visualization
     const groupedByDay = data.reduce((acc: { [key: string]: any }, item) => {
       const date = format(new Date(item.timestamp), "MMM dd")
 
       if (!acc[date]) {
-        acc[date] = { count: 0, CO: 0, AirQuality: 0, Temperature: 0, Humidity: 0 }
+        acc[date] = {
+          count: 0,
+          CO: 0,
+          AirQuality: 0,
+          Temperature: 0,
+          Humidity: 0,
+        }
       }
 
       acc[date].count++
       if (item.co !== null) acc[date].CO += item.co
-      if (item.airQuality !== null) acc[date].AirQuality += item.airQuality
+      if (item.pm2_5 !== null) acc[date].AirQuality += item.pm2_5
       if (item.temperature !== null) acc[date].Temperature += item.temperature
       if (item.humidity !== null) acc[date].Humidity += item.humidity
 
       return acc
     }, {})
 
-    return Object.entries(groupedByDay).map(([date, values]: [string, any]) => ({
-      date,
-      CO: values.count > 0 ? +(values.CO / values.count).toFixed(2) : 0,
-      AirQuality: values.count > 0 ? +(values.AirQuality / values.count).toFixed(0) : 0,
-      Temperature: values.count > 0 ? +(values.Temperature / values.count).toFixed(1) : 0,
-      Humidity: values.count > 0 ? +(values.Humidity / values.count).toFixed(0) : 0,
-    })).sort((a, b) => new Date(a.date + " 2024").getTime() - new Date(b.date + " 2024").getTime())
+    // Calculate averages and format for chart
+    return Object.entries(groupedByDay)
+      .map(([date, values]: [string, any]) => ({
+        date,
+        CO: values.count > 0 ? +(values.CO / values.count).toFixed(2) : 0,
+        AirQuality: values.count > 0 ? +(values.AirQuality / values.count).toFixed(0) : 0,
+        Temperature: values.count > 0 ? +(values.Temperature / values.count).toFixed(1) : 0,
+        Humidity: values.count > 0 ? +(values.Humidity / values.count).toFixed(0) : 0,
+      }))
+      .sort((a, b) => new Date(a.date + " 2024").getTime() - new Date(b.date + " 2024").getTime())
   }
 
-  // Enhanced summary data processing for CityAir+
+  // Process summary data for the 4 available parameters
   const processSummaryData = (data: SensorData[]): SummaryData[] => {
     if (data.length === 0) return []
 
     const parameters = [
-      { key: 'co' as keyof SensorData, name: 'Carbon Monoxide', sensor: 'MQ-9', unit: 'ppm' },
-      { key: 'airQuality' as keyof SensorData, name: 'Air Quality Index', sensor: 'MQ-135', unit: 'AQI' },
-      { key: 'temperature' as keyof SensorData, name: 'Temperature', sensor: 'DHT-11', unit: '°C' },
-      { key: 'humidity' as keyof SensorData, name: 'Humidity', sensor: 'DHT-11', unit: '%RH' }
+      { key: "co" as keyof SensorData, name: "Carbon Monoxide", sensor: "MQ-9", unit: "ppm" },
+      { key: "pm2_5" as keyof SensorData, name: "Air Quality Index", sensor: "MQ-135", unit: "AQI" },
+      { key: "temperature" as keyof SensorData, name: "Temperature", sensor: "DHT-11", unit: "°C" },
+      { key: "humidity" as keyof SensorData, name: "Humidity", sensor: "DHT-11", unit: "%RH" },
     ]
 
-    return parameters.map(param => {
-      const values = data.map(d => d[param.key]).filter(v => v !== null) as number[]
-      
+    return parameters.map((param) => {
+      const values = data.map((d) => d[param.key]).filter((v) => v !== null) as number[]
+
       if (values.length === 0) {
         return {
           parameter: param.name,
@@ -248,46 +272,78 @@ export default function ReportsPage() {
           trend: "stable" as const,
           unit: param.unit,
           status: "good" as const,
-          recommendation: "No data available"
+          recommendation: "No data available",
         }
       }
 
       const average = values.reduce((a, b) => a + b, 0) / values.length
       const min = Math.min(...values)
       const max = Math.max(...values)
-      
+
       // Calculate trend (simplified)
       const firstHalf = values.slice(0, Math.floor(values.length / 2))
       const secondHalf = values.slice(Math.floor(values.length / 2))
       const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length
       const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length
-      
+
       let trend: "increasing" | "decreasing" | "stable" = "stable"
       if (secondAvg > firstAvg * 1.05) trend = "increasing"
       else if (secondAvg < firstAvg * 0.95) trend = "decreasing"
 
-      // Determine status and recommendations
+      // Determine status and recommendations based on real thresholds
       let status: "good" | "moderate" | "poor" | "critical" = "good"
       let recommendation = ""
 
-      if (param.key === 'co') {
-        if (average > 5) { status = "critical"; recommendation = "Immediate action required: Investigate combustion sources and improve ventilation" }
-        else if (average > 3) { status = "poor"; recommendation = "Monitor closely: Check for gas leaks and ensure proper ventilation" }
-        else if (average > 2) { status = "moderate"; recommendation = "Regular monitoring recommended" }
-        else { status = "good"; recommendation = "CO levels are safe" }
-      } else if (param.key === 'airQuality') {
-        if (average > 200) { status = "critical"; recommendation = "Health alert: Avoid outdoor activities, use air purifiers indoors" }
-        else if (average > 150) { status = "poor"; recommendation = "Unhealthy air: Limit outdoor exposure, especially for sensitive individuals" }
-        else if (average > 100) { status = "moderate"; recommendation = "Monitor air quality: Consider indoor activities during peak pollution" }
-        else { status = "good"; recommendation = "Air quality is acceptable for outdoor activities" }
-      } else if (param.key === 'temperature') {
-        if (average > 35) { status = "poor"; recommendation = "High temperatures may increase pollution concentration" }
-        else if (average < 0) { status = "moderate"; recommendation = "Cold temperatures may affect sensor accuracy" }
-        else { status = "good"; recommendation = "Temperature within normal range" }
-      } else if (param.key === 'humidity') {
-        if (average > 80) { status = "moderate"; recommendation = "High humidity may affect air quality measurements" }
-        else if (average < 30) { status = "moderate"; recommendation = "Low humidity may increase particulate matter" }
-        else { status = "good"; recommendation = "Humidity levels are optimal" }
+      if (param.key === "co") {
+        if (average > 5) {
+          status = "critical"
+          recommendation = "Immediate action required: Investigate combustion sources and improve ventilation"
+        } else if (average > 3) {
+          status = "poor"
+          recommendation = "Monitor closely: Check for gas leaks and ensure proper ventilation"
+        } else if (average > 2) {
+          status = "moderate"
+          recommendation = "Regular monitoring recommended"
+        } else {
+          status = "good"
+          recommendation = "CO levels are safe"
+        }
+      } else if (param.key === "pm2_5") {
+        if (average > 200) {
+          status = "critical"
+          recommendation = "Health alert: Avoid outdoor activities, use air purifiers indoors"
+        } else if (average > 150) {
+          status = "poor"
+          recommendation = "Unhealthy air: Limit outdoor exposure, especially for sensitive individuals"
+        } else if (average > 100) {
+          status = "moderate"
+          recommendation = "Monitor air quality: Consider indoor activities during peak pollution"
+        } else {
+          status = "good"
+          recommendation = "Air quality is acceptable for outdoor activities"
+        }
+      } else if (param.key === "temperature") {
+        if (average > 35) {
+          status = "poor"
+          recommendation = "High temperatures may increase pollution concentration"
+        } else if (average < 0) {
+          status = "moderate"
+          recommendation = "Cold temperatures may affect sensor accuracy"
+        } else {
+          status = "good"
+          recommendation = "Temperature within normal range"
+        }
+      } else if (param.key === "humidity") {
+        if (average > 80) {
+          status = "moderate"
+          recommendation = "High humidity may affect air quality measurements"
+        } else if (average < 30) {
+          status = "moderate"
+          recommendation = "Low humidity may increase particulate matter"
+        } else {
+          status = "good"
+          recommendation = "Humidity levels are optimal"
+        }
       }
 
       return {
@@ -299,29 +355,32 @@ export default function ReportsPage() {
         trend,
         unit: param.unit,
         status,
-        recommendation
+        recommendation,
       }
     })
   }
 
-  // Generate location-specific insights
+  // Generate location-specific insights for our cities
   const generateLocationInsights = (data: SensorData[]): LocationInsight[] => {
-    const locationGroups = data.reduce((acc, item) => {
-      if (!acc[item.location]) acc[item.location] = []
-      acc[item.location].push(item)
-      return acc
-    }, {} as Record<string, SensorData[]>)
+    const locationGroups = data.reduce(
+      (acc, item) => {
+        if (!acc[item.location]) acc[item.location] = []
+        acc[item.location].push(item)
+        return acc
+      },
+      {} as Record<string, SensorData[]>,
+    )
 
     return Object.entries(locationGroups).map(([location, locationData]) => {
       const avgCO = locationData.reduce((sum, d) => sum + (d.co || 0), 0) / locationData.length
-      const avgAQI = locationData.reduce((sum, d) => sum + (d.airQuality || 0), 0) / locationData.length
+      const avgAQI = locationData.reduce((sum, d) => sum + (d.pm2_5 || 0), 0) / locationData.length
 
       let overallStatus: "excellent" | "good" | "moderate" | "poor" | "critical" = "good"
       let mainConcern = ""
       let recommendation = ""
       let trendSummary = ""
 
-      // Determine overall status
+      // Determine overall status based on real data
       if (avgAQI > 200 || avgCO > 5) {
         overallStatus = "critical"
         mainConcern = "Dangerous pollution levels detected"
@@ -354,7 +413,7 @@ export default function ReportsPage() {
         overallStatus,
         mainConcern,
         recommendation,
-        trendSummary
+        trendSummary,
       }
     })
   }
@@ -391,23 +450,22 @@ export default function ReportsPage() {
 
       // Enhanced header
       doc.setFontSize(20)
-      doc.text("CityAir+ Environmental Report", 14, 22)
+      doc.text("FactoryAirWatch Environmental Report", 14, 22)
       doc.setFontSize(12)
       doc.text("Urban Air Quality Monitoring & Analysis", 14, 30)
 
       // Report metadata
       doc.text(`Report Period: ${formatDateRange(dateRange)}`, 14, 40)
       doc.text(`Generated: ${format(new Date(), "MMM dd, yyyy HH:mm")}`, 14, 46)
-      doc.text(`Location: ${selectedLocation === "all" ? "All Monitoring Stations" : selectedLocation}`, 14, 52)
-      doc.text(`Generated by: ${user?.username || "CityAir+ System"}`, 14, 58)
+      doc.text(`Location: ${selectedLocation === "all" ? "All Cities" : selectedLocation}`, 14, 52)
+      doc.text(`Generated by: ${user?.username || "FactoryAirWatch System"}`, 14, 58)
 
       // Executive Summary
       doc.setFontSize(14)
       doc.text("Executive Summary", 14, 70)
       doc.setFontSize(10)
-
       let yPos = 75
-      locationInsights.forEach(insight => {
+      locationInsights.forEach((insight) => {
         if (yPos > 250) {
           doc.addPage()
           yPos = 20
@@ -423,18 +481,17 @@ export default function ReportsPage() {
         doc.addPage()
         yPos = 20
       }
-
       doc.setFontSize(14)
       doc.text("Environmental Parameter Summary", 14, yPos)
 
-      const summaryTableData = summaryData.map(item => [
+      const summaryTableData = summaryData.map((item) => [
         item.parameter,
         item.sensor,
         `${item.average} ${item.unit}`,
         `${item.min} ${item.unit}`,
         `${item.max} ${item.unit}`,
         item.trend.charAt(0).toUpperCase() + item.trend.slice(1),
-        item.status.toUpperCase()
+        item.status.toUpperCase(),
       ])
 
       autoTable(doc, {
@@ -450,13 +507,15 @@ export default function ReportsPage() {
       doc.setFontSize(14)
       doc.text("Daily Environmental Readings", 14, chartTableY + 10)
 
-      const chartTableData = chartData.slice(0, 15).map(item => [
-        item.date,
-        `${item.CO} ppm`,
-        `${item.AirQuality} AQI`,
-        `${item.Temperature} °C`,
-        `${item.Humidity} %RH`,
-      ])
+      const chartTableData = chartData
+        .slice(0, 15)
+        .map((item) => [
+          item.date,
+          `${item.CO} ppm`,
+          `${item.AirQuality} AQI`,
+          `${item.Temperature} °C`,
+          `${item.Humidity} %RH`,
+        ])
 
       autoTable(doc, {
         startY: chartTableY + 14,
@@ -472,22 +531,22 @@ export default function ReportsPage() {
         doc.setPage(i)
         doc.setFontSize(8)
         doc.text(
-          `CityAir+ Environmental Monitoring System - Page ${i} of ${pageCount}`,
+          `FactoryAirWatch Environmental Monitoring System - Page ${i} of ${pageCount}`,
           doc.internal.pageSize.getWidth() / 2,
           doc.internal.pageSize.getHeight() - 10,
-          { align: "center" }
+          { align: "center" },
         )
       }
 
-      doc.save(`CityAir+_Report_${format(new Date(), "yyyy-MM-dd")}.pdf`)
+      doc.save(`FactoryAirWatch_Report_${format(new Date(), "yyyy-MM-dd")}.pdf`)
 
       if (user?.id) {
-        addActivity("Environmental Report Export", `Exported CityAir+ PDF report for ${formatDateRange(dateRange)}`)
+        addActivity("Environmental Report Export", `Exported PDF report for ${formatDateRange(dateRange)}`)
       }
 
       toast.success("Environmental report exported successfully")
     } catch (error) {
-      console.error("Error exporting CityAir+ report:", error)
+      console.error("Error exporting report:", error)
       toast.error("Failed to export environmental report")
     }
   }
@@ -495,15 +554,28 @@ export default function ReportsPage() {
   // Get status badge
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      excellent: { color: "bg-green-100 text-green-800", icon: <CheckCircle className="h-3 w-3" /> },
-      good: { color: "bg-green-100 text-green-800", icon: <CheckCircle className="h-3 w-3" /> },
-      moderate: { color: "bg-yellow-100 text-yellow-800", icon: <Info className="h-3 w-3" /> },
-      poor: { color: "bg-orange-100 text-orange-800", icon: <AlertTriangle className="h-3 w-3" /> },
-      critical: { color: "bg-red-100 text-red-800", icon: <AlertTriangle className="h-3 w-3" /> }
+      excellent: {
+        color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+        icon: <CheckCircle className="h-3 w-3" />,
+      },
+      good: {
+        color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+        icon: <CheckCircle className="h-3 w-3" />,
+      },
+      moderate: {
+        color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+        icon: <Info className="h-3 w-3" />,
+      },
+      poor: {
+        color: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
+        icon: <AlertTriangle className="h-3 w-3" />,
+      },
+      critical: {
+        color: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+        icon: <AlertTriangle className="h-3 w-3" />,
+      },
     }
-
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.good
-
     return (
       <Badge variant="outline" className={config.color}>
         {config.icon}
@@ -524,7 +596,7 @@ export default function ReportsPage() {
     }
   }
 
-  // Get parameter icon based on CityAir+ sensors
+  // Get parameter icon
   const getParameterIcon = (parameter: string) => {
     if (parameter.includes("Carbon Monoxide")) {
       return <Flame className="h-5 w-5 text-red-500" />
@@ -555,10 +627,12 @@ export default function ReportsPage() {
     show: { y: 0, opacity: 1 },
   }
 
-  // Generate data on component mount and filter changes
+  // Fetch data on initial load and when filters change
   useEffect(() => {
-    generateReportData()
+    fetchReportData()
   }, [dateRange, selectedLocation, selectedParameter])
+
+  const colors = getChartColors()
 
   return (
     <div className="space-y-6">
@@ -567,7 +641,7 @@ export default function ReportsPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="gap-2 w-full sm:w-auto justify-between">
+              <Button variant="outline" className="gap-2 w-full sm:w-auto justify-between bg-transparent">
                 <CalendarIcon className="h-4 w-4" />
                 <span>{formatDateRange(dateRange)}</span>
                 <span className="sr-only">Select date range</span>
@@ -587,10 +661,10 @@ export default function ReportsPage() {
 
           <Select value={selectedLocation} onValueChange={setSelectedLocation}>
             <SelectTrigger className="w-full sm:w-[200px]">
-              <SelectValue placeholder="Select monitoring station" />
+              <SelectValue placeholder="Select city" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Monitoring Stations</SelectItem>
+              <SelectItem value="all">All Cities</SelectItem>
               {locations.map((location) => (
                 <SelectItem key={location} value={location}>
                   {location}
@@ -605,15 +679,15 @@ export default function ReportsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Parameters</SelectItem>
-              <SelectItem value="co">Carbon Monoxide (MQ-9)</SelectItem>
-              <SelectItem value="airQuality">Air Quality (MQ-135)</SelectItem>
-              <SelectItem value="temperature">Temperature (DHT-11)</SelectItem>
-              <SelectItem value="humidity">Humidity (DHT-11)</SelectItem>
+              <SelectItem value="co">Carbon Monoxide</SelectItem>
+              <SelectItem value="pm2_5">Air Quality</SelectItem>
+              <SelectItem value="temperature">Temperature</SelectItem>
+              <SelectItem value="humidity">Humidity</SelectItem>
             </SelectContent>
           </Select>
 
-          <Button variant="outline" className="gap-2 w-full sm:w-auto" onClick={generateReportData}>
-            <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          <Button variant="outline" className="gap-2 w-full sm:w-auto bg-transparent" onClick={fetchReportData}>
+            <RefreshCcw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             Refresh
           </Button>
 
@@ -636,7 +710,7 @@ export default function ReportsPage() {
             {isLoading ? (
               <LoadingSkeleton />
             ) : error ? (
-              <ErrorDisplay message={error} onRetry={generateReportData} />
+              <ErrorDisplay message={error} onRetry={fetchReportData} />
             ) : (
               <motion.div variants={containerVariants} initial="hidden" animate="show">
                 {/* Location Insights */}
@@ -646,10 +720,10 @@ export default function ReportsPage() {
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <MapPin className="h-5 w-5" />
-                          Location-Based Environmental Analysis
+                          City-Based Environmental Analysis
                         </CardTitle>
                         <CardDescription>
-                          Overall assessment and recommendations for each monitoring location
+                          Overall assessment and recommendations for each monitoring city
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
@@ -717,9 +791,7 @@ export default function ReportsPage() {
                           </div>
                           <Alert className="mt-4">
                             <Info className="h-4 w-4" />
-                            <AlertDescription className="text-sm">
-                              {item.recommendation}
-                            </AlertDescription>
+                            <AlertDescription className="text-sm">{item.recommendation}</AlertDescription>
                           </Alert>
                         </CardContent>
                       </Card>
@@ -736,7 +808,7 @@ export default function ReportsPage() {
             {isLoading ? (
               <LoadingSkeleton />
             ) : error ? (
-              <ErrorDisplay message={error} onRetry={generateReportData} />
+              <ErrorDisplay message={error} onRetry={fetchReportData} />
             ) : (
               <motion.div variants={containerVariants} initial="hidden" animate="show" ref={chartCardRef}>
                 <motion.div variants={itemVariants}>
@@ -744,10 +816,10 @@ export default function ReportsPage() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <BarChart3 className="h-5 w-5" />
-                        CityAir+ Environmental Trends
+                        Environmental Trends
                       </CardTitle>
                       <CardDescription>
-                        Historical trends for {selectedLocation === "all" ? "all monitoring stations" : selectedLocation} during{" "}
+                        Historical trends for {selectedLocation === "all" ? "all cities" : selectedLocation} during{" "}
                         {formatDateRange(dateRange)}
                       </CardDescription>
                     </CardHeader>
@@ -755,56 +827,60 @@ export default function ReportsPage() {
                       <div className="h-[400px]">
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="date" />
-                            <YAxis yAxisId="left" />
-                            <YAxis yAxisId="right" orientation="right" />
-                            <Tooltip 
+                            <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
+                            <XAxis dataKey="date" stroke={colors.text} />
+                            <YAxis yAxisId="left" stroke={colors.text} />
+                            <YAxis yAxisId="right" orientation="right" stroke={colors.text} />
+                            <Tooltip
+                              contentStyle={{
+                                backgroundColor: colors.background,
+                                border: `1px solid ${colors.grid}`,
+                                borderRadius: "8px",
+                                color: colors.text,
+                              }}
                               labelFormatter={(value) => `Date: ${value}`}
-                              formatter={(value, name) => [
-                                name === 'AirQuality' ? `${value} AQI` :
-                                name === 'CO' ? `${value} ppm` :
-                                name === 'Temperature' ? `${value}°C` :
-                                `${value}%RH`, 
-                                name === 'AirQuality' ? 'Air Quality (MQ-135)' :
-                                name === 'CO' ? 'Carbon Monoxide (MQ-9)' :
-                                name === 'Temperature' ? 'Temperature (DHT-11)' :
-                                'Humidity (DHT-11)'
-                              ]}
+                              formatter={customLineTooltipFormatter}
                             />
                             <Legend />
                             <Line
                               yAxisId="left"
                               type="monotone"
                               dataKey="CO"
-                              name="CO (ppm)"
-                              stroke="#ef4444"
+                              name="Carbon Monoxide"
+                              stroke={colors.co}
                               strokeWidth={2}
-                              activeDot={{ r: 6 }}
+                              dot={{ fill: colors.co, strokeWidth: 2, r: 4 }}
+                              activeDot={{ r: 6, stroke: colors.co, strokeWidth: 2 }}
                             />
-                            <Line 
+                            <Line
                               yAxisId="right"
-                              type="monotone" 
-                              dataKey="AirQuality" 
-                              name="Air Quality (AQI)" 
-                              stroke="#3b82f6"
+                              type="monotone"
+                              dataKey="AirQuality"
+                              name="Air Quality"
+                              stroke={colors.airQuality}
                               strokeWidth={2}
+                              dot={{ fill: colors.airQuality, strokeWidth: 2, r: 4 }}
+                              activeDot={{ r: 6, stroke: colors.airQuality, strokeWidth: 2 }}
                             />
-                            <Line 
+                            <Line
                               yAxisId="left"
-                              type="monotone" 
-                              dataKey="Temperature" 
-                              name="Temperature (°C)" 
-                              stroke="#f97316"
+                              type="monotone"
+                              dataKey="Temperature"
+                              name="Temperature"
+                              stroke={colors.temperature}
                               strokeWidth={2}
+                              dot={{ fill: colors.temperature, strokeWidth: 2, r: 4 }}
+                              activeDot={{ r: 6, stroke: colors.temperature, strokeWidth: 2 }}
                             />
-                            <Line 
+                            <Line
                               yAxisId="left"
-                              type="monotone" 
-                              dataKey="Humidity" 
-                              name="Humidity (%RH)" 
-                              stroke="#06b6d4"
+                              type="monotone"
+                              dataKey="Humidity"
+                              name="Humidity"
+                              stroke={colors.humidity}
                               strokeWidth={2}
+                              dot={{ fill: colors.humidity, strokeWidth: 2, r: 4 }}
+                              activeDot={{ r: 6, stroke: colors.humidity, strokeWidth: 2 }}
                             />
                           </LineChart>
                         </ResponsiveContainer>
@@ -812,8 +888,8 @@ export default function ReportsPage() {
                     </CardContent>
                     <CardFooter>
                       <p className="text-sm text-muted-foreground">
-                        Data from CityAir+ sensors showing daily averages. CO and environmental data use left axis, 
-                        Air Quality Index uses right axis. Hover over points for detailed values.
+                        Data from ThingSpeak sensors showing daily averages. Environmental parameters use left axis, Air
+                        Quality Index uses right axis. Hover over points for detailed values.
                       </p>
                     </CardFooter>
                   </Card>
@@ -835,7 +911,8 @@ export default function ReportsPage() {
                               <li key={index} className="flex items-start gap-2">
                                 <div className="mt-1">{getTrendInfo(item.trend).icon}</div>
                                 <span>
-                                  <strong>{item.parameter}:</strong> {item.trend} trend with average of {item.average} {item.unit}
+                                  <strong>{item.parameter}:</strong> {item.trend} trend with average of {item.average}{" "}
+                                  {item.unit}
                                 </span>
                               </li>
                             ))}
@@ -844,21 +921,21 @@ export default function ReportsPage() {
                         <div className="space-y-4">
                           <h3 className="font-medium">Environmental Correlations</h3>
                           <div className="space-y-3">
-                            <div className="p-3 bg-blue-50 rounded-lg">
+                            <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
                               <p className="text-sm">
-                                <strong>Temperature vs Air Quality:</strong> Higher temperatures often correlate with 
+                                <strong>Temperature vs Air Quality:</strong> Higher temperatures often correlate with
                                 increased pollution concentrations due to enhanced chemical reactions.
                               </p>
                             </div>
-                            <div className="p-3 bg-green-50 rounded-lg">
+                            <div className="p-3 bg-green-50 dark:bg-green-950 rounded-lg">
                               <p className="text-sm">
-                                <strong>Humidity Impact:</strong> Moderate humidity levels help with pollutant dispersion, 
-                                while very high or low humidity can affect measurement accuracy.
+                                <strong>Humidity Impact:</strong> Moderate humidity levels help with pollutant
+                                dispersion, while very high or low humidity can affect measurement accuracy.
                               </p>
                             </div>
-                            <div className="p-3 bg-orange-50 rounded-lg">
+                            <div className="p-3 bg-orange-50 dark:bg-orange-950 rounded-lg">
                               <p className="text-sm">
-                                <strong>CO Patterns:</strong> Carbon monoxide levels typically spike during peak traffic 
+                                <strong>CO Patterns:</strong> Carbon monoxide levels typically spike during peak traffic
                                 hours and in poorly ventilated areas.
                               </p>
                             </div>
@@ -878,7 +955,7 @@ export default function ReportsPage() {
             {isLoading ? (
               <LoadingSkeleton />
             ) : error ? (
-              <ErrorDisplay message={error} onRetry={generateReportData} />
+              <ErrorDisplay message={error} onRetry={fetchReportData} />
             ) : (
               <motion.div variants={containerVariants} initial="hidden" animate="show">
                 <motion.div variants={itemVariants}>
@@ -896,33 +973,30 @@ export default function ReportsPage() {
                       <div className="h-[400px]">
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="date" />
-                            <YAxis />
-                            <Tooltip 
-                              formatter={(value, name) => [
-                                name === 'AirQuality' ? `${value} AQI` :
-                                name === 'CO' ? `${value} ppm` :
-                                name === 'Temperature' ? `${value}°C` :
-                                `${value}%RH`, 
-                                name === 'AirQuality' ? 'Air Quality' :
-                                name === 'CO' ? 'Carbon Monoxide' :
-                                name === 'Temperature' ? 'Temperature' :
-                                'Humidity'
-                              ]}
+                            <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
+                            <XAxis dataKey="date" stroke={colors.text} />
+                            <YAxis stroke={colors.text} />
+                            <Tooltip
+                              contentStyle={{
+                                backgroundColor: colors.background,
+                                border: `1px solid ${colors.grid}`,
+                                borderRadius: "8px",
+                                color: colors.text,
+                              }}
+                              formatter={customBarTooltipFormatter}
                             />
                             <Legend />
-                            <Bar dataKey="CO" name="CO (ppm)" fill="#ef4444" />
-                            <Bar dataKey="AirQuality" name="Air Quality (AQI)" fill="#3b82f6" />
-                            <Bar dataKey="Temperature" name="Temperature (°C)" fill="#f97316" />
-                            <Bar dataKey="Humidity" name="Humidity (%RH)" fill="#06b6d4" />
+                            <Bar dataKey="CO" name="Carbon Monoxide" fill={colors.co} />
+                            <Bar dataKey="AirQuality" name="Air Quality" fill={colors.airQuality} />
+                            <Bar dataKey="Temperature" name="Temperature" fill={colors.temperature} />
+                            <Bar dataKey="Humidity" name="Humidity" fill={colors.humidity} />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
                     </CardContent>
                     <CardFooter>
                       <p className="text-sm text-muted-foreground">
-                        Side-by-side comparison of environmental parameters from your CityAir+ monitoring sensors.
+                        Side-by-side comparison of environmental parameters from your ThingSpeak monitoring sensors.
                         Note: Different parameters use different units and scales.
                       </p>
                     </CardFooter>
@@ -933,7 +1007,7 @@ export default function ReportsPage() {
                 <motion.div variants={itemVariants}>
                   <Card>
                     <CardHeader>
-                      <CardTitle>CityAir+ Comparative Environmental Analysis</CardTitle>
+                      <CardTitle>Comparative Environmental Analysis</CardTitle>
                       <CardDescription>Insights from your urban air quality monitoring network</CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -953,12 +1027,12 @@ export default function ReportsPage() {
                               ))}
                             </div>
                           </div>
-                          
+
                           <div>
                             <h3 className="font-medium mb-3">Priority Actions Required</h3>
                             <div className="space-y-3">
                               {summaryData
-                                .filter(item => item.status === 'critical' || item.status === 'poor')
+                                .filter((item) => item.status === "critical" || item.status === "poor")
                                 .map((item, index) => (
                                   <Alert key={index} className="border-orange-200">
                                     <AlertTriangle className="h-4 w-4" />
@@ -967,11 +1041,13 @@ export default function ReportsPage() {
                                     </AlertDescription>
                                   </Alert>
                                 ))}
-                              {summaryData.filter(item => item.status === 'critical' || item.status === 'poor').length === 0 && (
+                              {summaryData.filter((item) => item.status === "critical" || item.status === "poor")
+                                .length === 0 && (
                                 <Alert className="border-green-200">
                                   <CheckCircle className="h-4 w-4" />
                                   <AlertDescription>
-                                    All environmental parameters are within acceptable ranges. Continue regular monitoring.
+                                    All environmental parameters are within acceptable ranges. Continue regular
+                                    monitoring.
                                   </AlertDescription>
                                 </Alert>
                               )}
@@ -979,36 +1055,42 @@ export default function ReportsPage() {
                           </div>
                         </div>
 
-                        <div className="p-6 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg">
+                        <div className="p-6 bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-950 dark:to-green-950 rounded-lg">
                           <h3 className="font-medium mb-3">Overall Environmental Assessment</h3>
                           <div className="grid md:grid-cols-3 gap-4 text-sm">
                             <div className="text-center">
                               <div className="text-2xl font-bold text-green-600">
-                                {summaryData.length > 0 ? Math.round(summaryData.filter(d => d.status === 'good' || d.status === 'excellent').length / summaryData.length * 100) : 0}%
+                                {summaryData.length > 0
+                                  ? Math.round(
+                                      (summaryData.filter((d) => d.status === "good" || d.status === "excellent")
+                                        .length /
+                                        summaryData.length) *
+                                        100,
+                                    )
+                                  : 0}
+                                %
                               </div>
                               <div className="text-muted-foreground">Parameters in Good/Excellent condition</div>
                             </div>
                             <div className="text-center">
-                              <div className="text-2xl font-bold text-blue-600">
-                                {chartData.length}
-                              </div>
+                              <div className="text-2xl font-bold text-blue-600">{chartData.length}</div>
                               <div className="text-muted-foreground">Days of monitoring data analyzed</div>
                             </div>
                             <div className="text-center">
-                              <div className="text-2xl font-bold text-purple-600">
-                                {locationInsights.length}
-                              </div>
-                              <div className="text-muted-foreground">Monitoring locations assessed</div>
+                              <div className="text-2xl font-bold text-purple-600">{locationInsights.length}</div>
+                              <div className="text-muted-foreground">Cities assessed</div>
                             </div>
                           </div>
-                          
-                          <div className="mt-4 p-4 bg-white rounded-lg">
+
+                          <div className="mt-4 p-4 bg-white dark:bg-gray-800 rounded-lg">
                             <p className="text-sm">
-                              <strong>Recommendation:</strong> Based on the comprehensive analysis of your CityAir+ sensor network, 
-                              {summaryData.filter(d => d.status === 'critical' || d.status === 'poor').length > 0 
+                              <strong>Recommendation:</strong> Based on the comprehensive analysis of your sensor
+                              network,
+                              {summaryData.filter((d) => d.status === "critical" || d.status === "poor").length > 0
                                 ? " immediate attention is required for certain parameters. Focus on the priority actions listed above and consider implementing targeted intervention strategies."
-                                : " your environmental monitoring shows good overall air quality. Continue regular monitoring and maintain current environmental practices."
-                              } For detailed guidance on improving specific parameters, consult with local environmental authorities.
+                                : " your environmental monitoring shows good overall air quality. Continue regular monitoring and maintain current environmental practices."}{" "}
+                              For detailed guidance on improving specific parameters, consult with local environmental
+                              authorities.
                             </p>
                           </div>
                         </div>
@@ -1025,7 +1107,7 @@ export default function ReportsPage() {
   )
 }
 
-// Enhanced Loading skeleton component
+// Loading skeleton component
 function LoadingSkeleton() {
   return (
     <div className="space-y-6">
@@ -1053,7 +1135,7 @@ function LoadingSkeleton() {
   )
 }
 
-// Enhanced Error display component
+// Error display component
 function ErrorDisplay({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
     <Card>

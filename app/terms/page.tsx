@@ -123,7 +123,7 @@ export default function TermsPage() {
                   <div className="space-y-2">
                     <h3 className="text-lg font-medium">1. Sensor Network Accuracy</h3>
                     <p className="text-muted-foreground">
-                      Our IoT sensors (ESP32 with MQ-135, DHT22, and PM sensors) are calibrated to provide reliable air quality 
+                      Our IoT sensors (MQ-135, DHT11, and MQ-9 sensors) are calibrated to provide reliable air quality 
                       measurements including CO2, temperature, humidity, and particulate matter. While we strive for accuracy, 
                       environmental factors may occasionally affect readings.
                     </p>
@@ -150,7 +150,7 @@ export default function TermsPage() {
                   <div className="space-y-2">
                     <h3 className="text-lg font-medium">4. System Availability</h3>
                     <p className="text-muted-foreground">
-                      We utilize Firebase for real-time data and MongoDB for historical analysis to ensure high availability. 
+                      We utilize a WiFi connection through an ESP32 for real-time data transmission to ensure high availability. 
                       However, internet connectivity, power outages, or extreme weather may occasionally affect sensor operations 
                       and data transmission.
                     </p>

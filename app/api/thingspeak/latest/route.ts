@@ -55,7 +55,7 @@ export async function GET() {
       // Parse the sensor values from the fields
       const data: any = {
         channelId: channelId,
-        location: "Harare",
+        location: channel.name || "Factory Floor",
         timestamp: feed.created_at,
       }
 

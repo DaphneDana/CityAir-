@@ -76,7 +76,7 @@ export async function POST(request: Request) {
       // Parse sensor data from fields
       const sensorData: any = {
         channelId: channelId,
-        location: channel.name || "Factory Floor",
+        location: "Harare",
         timestamp: timestamp,
       }
 

@@ -695,8 +695,11 @@ export default function Dashboard() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Cities</SelectItem>
-                          <SelectItem value="Kampala">Kampala</SelectItem>
-                          <SelectItem value="Harare">Harare</SelectItem>
+                          {Array.from(new Set(sensorData.map((item) => item.location))).map((location) => (
+                            <SelectItem key={location} value={location}>
+                              {location}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
 

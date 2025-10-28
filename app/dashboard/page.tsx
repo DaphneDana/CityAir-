@@ -2,19 +2,21 @@
 
 import type React from "react"
 
+import { ConnectionStatus } from "@/components/dashboard/connectivity-status"
+import { PredictiveAnalytics } from "@/components/dashboard/predictive-analytics"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { TooltipContent, TooltipProvider, TooltipTrigger, Tooltip as UITooltip } from "@/components/ui/tooltip"
 import { useSensorData } from "@/hooks/use-sensor-data"
 import { useThingSpeakData } from "@/hooks/use-thingspeak-data"
 import { format, subDays } from "date-fns"
 import { motion } from "framer-motion"
-import { BarChart3, Clock, CloudFog, Droplets, Flame, RefreshCcw, TrendingUp, Wind, Thermometer } from "lucide-react"
+import { BarChart3, Clock, CloudFog, Droplets, Flame, Gauge, RefreshCcw, TrendingUp, Wind } from "lucide-react"
 import { useEffect, useState } from "react"
-import { useTheme } from "next-themes"
 import {
   Bar,
   BarChart,
@@ -28,9 +30,6 @@ import {
   YAxis,
 } from "recharts"
 import { toast } from "sonner"
-import { ConnectionStatus } from "@/components/dashboard/connectivity-status"
-import { PredictiveAnalytics } from "@/components/dashboard/predictive-analytics"
-import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 // Types for our data
 interface PollutantReading {
@@ -52,8 +51,6 @@ export default function Dashboard() {
     status: "Calculating...",
     color: "bg-gray-500",
   })
-
-  const { theme } = useTheme()
 
   // Fetch data from both sources
   const { data: databaseData, isLoading: isDatabaseLoading, error: databaseError } = useSensorData(24)
@@ -84,52 +81,41 @@ export default function Dashboard() {
   const isLoading = dataSource === "thingspeak" ? isThingSpeakLoading : isDatabaseLoading
   const error = dataSource === "thingspeak" ? thingSpeakError : databaseError
 
-  // Chart colors for light and dark modes
-  const getChartColors = () => {
-    const isDark = theme === "dark"
-    return {
-      temperature: isDark ? "#f97316" : "#ea580c", // Orange
-      humidity: isDark ? "#06b6d4" : "#0891b2", // Cyan
-      co: isDark ? "#ef4444" : "#dc2626", // Red
-      aqi: isDark ? "#8b5cf6" : "#7c3aed", // Purple
-      grid: isDark ? "#374151" : "#e5e7eb", // Gray
-      text: isDark ? "#f9fafb" : "#111827", // Text
-      background: isDark ? "#1f2937" : "#ffffff", // Background
-    }
-  }
-
-  // Debug logging
-  useEffect(() => {
-    console.log("Dashboard: Data source changed to:", dataSource)
-    console.log("Dashboard: ThingSpeak data:", thingSpeakData)
-    console.log("Dashboard: Database data:", databaseData)
-    console.log("Dashboard: Selected sensor data:", sensorData)
-    console.log("Dashboard: Is loading:", isLoading)
-    console.log("Dashboard: Error:", error)
-  }, [dataSource, thingSpeakData, databaseData, sensorData, isLoading, error])
-
   // Calculate AQI based on actual sensor data
   useEffect(() => {
     if (sensorData && sensorData.length > 0) {
       const latestData = sensorData[0]
-      console.log("Dashboard: Calculating AQI from latest data:", latestData)
 
-      // Calculate AQI based on Air Quality field (field4)
+      // Calculate AQI based on MQ-135 Air Quality sensor reading
+      // MQ-135 output is stored in voc field (Air Quality field from ThingSpeak)
       let aqi = 0
 
-      if (latestData.pm2_5) {
-        // Use the Air Quality value directly as AQI
-        aqi = latestData.pm2_5
+      if (latestData.voc) {
+        // Map MQ-135 Air Quality reading (0-500 scale) to AQI scale
+        const airQuality = latestData.voc
+
+        if (airQuality <= 50) {
+          // Good: 0-50 AQI
+          aqi = airQuality
+        } else if (airQuality <= 100) {
+          // Moderate: 51-100 AQI
+          aqi = Math.round(51 + ((100 - 51) / (100 - 51)) * (airQuality - 51))
+        } else if (airQuality <= 150) {
+          // Unhealthy for Sensitive Groups: 101-150 AQI
+          aqi = Math.round(101 + ((150 - 101) / (150 - 101)) * (airQuality - 101))
+        } else if (airQuality <= 200) {
+          // Unhealthy: 151-200 AQI
+          aqi = Math.round(151 + ((200 - 151) / (200 - 151)) * (airQuality - 151))
+        } else if (airQuality <= 300) {
+          // Very Unhealthy: 201-300 AQI
+          aqi = Math.round(201 + ((300 - 201) / (300 - 201)) * (airQuality - 201))
+        } else {
+          // Hazardous: 301+ AQI
+          aqi = Math.min(500, Math.round(301 + (airQuality - 301)))
+        }
       }
 
-      // Adjust AQI based on CO levels
-      if (latestData.co && latestData.co > 9) {
-        aqi = Math.max(aqi, 101 + (latestData.co - 9) * 2)
-      }
-
-      const calculatedAqi = Math.min(500, Math.max(0, Math.round(aqi)))
-      console.log("Dashboard: Calculated AQI:", calculatedAqi)
-      setAirQualityIndex(calculatedAqi)
+      setAirQualityIndex(Math.min(500, Math.max(0, Math.round(aqi))))
     }
   }, [sensorData])
 
@@ -158,13 +144,13 @@ export default function Dashboard() {
     }
 
     // Apply additional filters
-    if (tableFilter === "high-co" && (!item.co || item.co <= 50)) {
+    if (tableFilter === "high-co" && (!item.co || item.co <= 5)) {
       return false
-    } else if (tableFilter === "high-temp" && (!item.temperature || item.temperature <= 30)) {
+    } else if (tableFilter === "high-voc" && (!item.voc || item.voc <= 150)) {
       return false
-    } else if (tableFilter === "low-humidity" && (!item.humidity || item.humidity >= 20)) {
+    } else if (tableFilter === "high-pm25" && (!item.pm2_5 || item.pm2_5 <= 12)) {
       return false
-    } else if (tableFilter === "high-aqi" && (!item.pm2_5 || item.pm2_5 <= 100)) {
+    } else if (tableFilter === "high-pm10" && (!item.pm10 || item.pm10 <= 25)) {
       return false
     }
 
@@ -181,11 +167,14 @@ export default function Dashboard() {
   const chartData = sensorData
     .map((reading) => ({
       time: format(new Date(reading.timestamp), "HH:mm"),
-      fullTime: format(new Date(reading.timestamp), "yyyy-MM-dd HH:mm:ss"),
-      Temperature: reading.temperature || 0,
-      Humidity: reading.humidity || 0,
       CO: reading.co || 0,
-      AQI: reading.pm2_5 || 0, // Air Quality field
+      VOCs: reading.voc || 0,
+      NO2: 0, // Not in our database schema but kept for UI consistency
+      PM25: reading.pm2_5 || 0,
+      PM10: reading.pm10 || 0,
+      Methane: reading.methane || 0,
+      Humidity: reading.humidity || 0,
+      Temperature: reading.temperature || 0,
     }))
     .reverse()
 
@@ -195,14 +184,16 @@ export default function Dashboard() {
   // Determine status based on values
   const getStatus = (value: number, type: string): "good" | "moderate" | "unhealthy" => {
     switch (type) {
-      case "Temperature":
-        return value < 35 ? "good" : value < 40 ? "moderate" : "unhealthy"
-      case "Humidity":
-        return value > 30 && value < 70 ? "good" : value > 20 && value < 80 ? "moderate" : "unhealthy"
       case "CO":
-        return value < 50 ? "good" : value < 100 ? "moderate" : "unhealthy"
-      case "AQI":
-        return value < 50 ? "good" : value < 100 ? "moderate" : "unhealthy"
+        return value < 5 ? "good" : value < 10 ? "moderate" : "unhealthy"
+      case "VOCs":
+        return value < 150 ? "good" : value < 300 ? "moderate" : "unhealthy"
+      case "PM2.5":
+        return value < 12 ? "good" : value < 35 ? "moderate" : "unhealthy"
+      case "PM10":
+        return value < 50 ? "good" : value < 150 ? "moderate" : "unhealthy"
+      case "Methane":
+        return value < 1000 ? "good" : value < 5000 ? "moderate" : "unhealthy"
       default:
         return "good"
     }
@@ -224,52 +215,66 @@ export default function Dashboard() {
 
     const previousReading = sensorData[1]
 
-    // Only show fields that are available from ThingSpeak
-    const availableReadings = [
-      {
-        name: "Temperature",
-        value: latestReading.temperature || 0,
-        unit: "°C",
-        status: getStatus(latestReading.temperature || 0, "Temperature"),
-        icon: <Thermometer className="h-5 w-5" />,
-        change: calculateChange(latestReading.temperature, previousReading?.temperature),
-        description: "Ambient temperature measured in the monitoring area.",
-        healthEffects: "Temperature affects comfort and can influence other pollutant concentrations.",
-      },
-      {
-        name: "Humidity",
-        value: latestReading.humidity || 0,
-        unit: "%",
-        status: getStatus(latestReading.humidity || 0, "Humidity"),
-        icon: <Droplets className="h-5 w-5" />,
-        change: calculateChange(latestReading.humidity, previousReading?.humidity),
-        description: "Relative humidity percentage in the air.",
-        healthEffects: "Affects comfort and can influence particulate matter concentrations.",
-      },
+    return [
       {
         name: "Carbon Monoxide",
         value: latestReading.co || 0,
         unit: "ppm",
         status: getStatus(latestReading.co || 0, "CO"),
         icon: <Flame className="h-5 w-5" />,
-        change: calculateChange(latestReading.co, previousReading?.co),
+        change: calculateChange(latestReading.co, previousReading.co),
         description: "Colorless, odorless gas produced by incomplete combustion of carbon-containing fuels.",
         healthEffects:
           "Can cause headaches, dizziness, and at high levels, can be fatal by reducing oxygen delivery to organs.",
       },
       {
-        name: "Air Quality Index",
-        value: latestReading.pm2_5 || 0, // Using the Air Quality field
-        unit: "AQI",
-        status: getStatus(latestReading.pm2_5 || 0, "AQI"),
+        name: "VOCs",
+        value: latestReading.voc || 0,
+        unit: "ppb",
+        status: getStatus(latestReading.voc || 0, "VOCs"),
         icon: <CloudFog className="h-5 w-5" />,
-        change: calculateChange(latestReading.pm2_5, previousReading?.pm2_5),
-        description: "Overall air quality index based on multiple pollutant measurements.",
-        healthEffects: "Higher values indicate poorer air quality and increased health risks.",
+        change: calculateChange(latestReading.voc, previousReading.voc),
+        description:
+          "Volatile Organic Compounds are chemicals that evaporate at room temperature, released from many industrial processes.",
+        healthEffects:
+          "Can cause eye, nose, and throat irritation, headaches, and some are suspected carcinogens with long-term exposure.",
+      },
+      {
+        name: "Methane",
+        value: latestReading.methane || 0,
+        unit: "ppm",
+        status: getStatus(latestReading.methane || 0, "Methane"),
+        icon: <Wind className="h-5 w-5" />,
+        change: calculateChange(latestReading.methane, previousReading.methane),
+        description:
+          "A potent greenhouse gas that is the primary component of natural gas, often released from industrial processes.",
+        healthEffects:
+          "Not directly toxic at typical environmental levels, but can displace oxygen in confined spaces and is highly flammable.",
+      },
+      {
+        name: "PM2.5",
+        value: latestReading.pm2_5 || 0,
+        unit: "μg/m³",
+        status: getStatus(latestReading.pm2_5 || 0, "PM2.5"),
+        icon: <Droplets className="h-5 w-5" />,
+        change: calculateChange(latestReading.pm2_5, previousReading.pm2_5),
+        description: "Fine particulate matter with diameter less than 2.5 micrometers, can penetrate deep into lungs.",
+        healthEffects:
+          "Can cause respiratory issues, aggravate asthma, and contribute to cardiovascular problems with long-term exposure.",
+      },
+      {
+        name: "PM10",
+        value: latestReading.pm10 || 0,
+        unit: "μg/m³",
+        status: getStatus(latestReading.pm10 || 0, "PM10"),
+        icon: <Gauge className="h-5 w-5" />,
+        change: calculateChange(latestReading.pm10, previousReading.pm10),
+        description:
+          "Coarse particulate matter with diameter less than 10 micrometers, includes dust, pollen, and mold.",
+        healthEffects:
+          "Can cause respiratory irritation, coughing, and aggravate conditions like asthma and bronchitis.",
       },
     ]
-
-    return availableReadings
   }
 
   const pollutants = generatePollutantReadings()
@@ -306,7 +311,6 @@ export default function Dashboard() {
 
   // Handle refresh button click
   const handleRefresh = async () => {
-    console.log("Dashboard: Refresh button clicked")
     if (dataSource === "thingspeak") {
       await refetchThingSpeak()
       toast.success("ThingSpeak data refreshed")
@@ -317,35 +321,8 @@ export default function Dashboard() {
 
   // Handle sync with database button click
   const handleSync = async () => {
-    console.log("Dashboard: Sync button clicked")
     await syncWithDatabase()
     toast.success("ThingSpeak data synced with database")
-  }
-
-  // Custom tooltip component for charts
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const colors = getChartColors()
-      return (
-        <div className="bg-background border border-border rounded-lg shadow-lg p-3">
-          <p className="text-foreground font-medium">{`Time: ${label}`}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={index} style={{ color: entry.color }} className="text-sm">
-              {`${entry.name}: ${entry.value}${
-                entry.name === "Temperature"
-                  ? "°C"
-                  : entry.name === "Humidity"
-                    ? "%"
-                    : entry.name === "CO"
-                      ? " ppm"
-                      : " AQI"
-              }`}
-            </p>
-          ))}
-        </div>
-      )
-    }
-    return null
   }
 
   // Generate historical data for the Historical tab
@@ -356,9 +333,9 @@ export default function Dashboard() {
         const date = format(subDays(new Date(), 29 - i), "MMM dd")
         return {
           date,
-          Temperature: 25 + Math.sin(i / 5) * 5 + Math.random() * 2,
-          CO: 50 + Math.sin(i / 7) * 20 + Math.random() * 10,
-          AQI: 80 + Math.cos(i / 6) * 30 + Math.random() * 15,
+          CO: 2 + Math.sin(i / 5) * 1.5 + Math.random() * 0.5,
+          VOCs: 100 + Math.sin(i / 7) * 50 + Math.random() * 20,
+          PM25: 8 + Math.cos(i / 6) * 4 + Math.random() * 2,
         }
       })
       setHistoricalChartData(historicalData)
@@ -366,24 +343,29 @@ export default function Dashboard() {
       // Generate seasonal comparison data
       const seasonalData = [
         {
-          name: "Temperature (°C)",
-          current: Number.parseFloat((sensorData[0]?.temperature || 25).toFixed(1)),
-          historical: 24.5,
-        },
-        {
-          name: "Humidity (%)",
-          current: Number.parseFloat((sensorData[0]?.humidity || 45).toFixed(1)),
-          historical: 48.2,
-        },
-        {
           name: "CO (ppm)",
-          current: Number.parseFloat((sensorData[0]?.co || 60).toFixed(1)),
-          historical: 55.8,
+          current: Number.parseFloat((sensorData[0]?.co || 3).toFixed(1)),
+          historical: 3.2,
         },
         {
-          name: "AQI",
-          current: Number.parseFloat((sensorData[0]?.pm2_5 || 120).toFixed(1)),
-          historical: 115.3,
+          name: "VOCs (ppb)",
+          current: Number.parseFloat((sensorData[0]?.voc || 120).toFixed(1)),
+          historical: 110.5,
+        },
+        {
+          name: "PM2.5 (μg/m³)",
+          current: Number.parseFloat((sensorData[0]?.pm2_5 || 10).toFixed(1)),
+          historical: 9.8,
+        },
+        {
+          name: "PM10 (μg/m³)",
+          current: Number.parseFloat((sensorData[0]?.pm10 || 22).toFixed(1)),
+          historical: 20.3,
+        },
+        {
+          name: "Methane (ppm)",
+          current: Number.parseFloat((sensorData[0]?.methane || 850).toFixed(1)),
+          historical: 820.7,
         },
       ]
       setSeasonalComparisonData(seasonalData)
@@ -391,43 +373,53 @@ export default function Dashboard() {
       // Generate statistical data
       const stats = [
         {
-          metric: "Temperature (°C)",
-          mean: "28.4 °C",
-          median: "28.1 °C",
-          stdDev: "3.2 °C",
-          min: "22.1 °C",
-          max: "35.8 °C",
+          metric: "Carbon Monoxide (CO)",
+          mean: "3.4 ppm",
+          median: "3.2 ppm",
+          stdDev: "0.8 ppm",
+          min: "1.9 ppm",
+          max: "6.2 ppm",
           trend: "stable",
           status: "Good",
         },
         {
-          metric: "Humidity (%)",
-          mean: "42.6 %",
-          median: "41.5 %",
-          stdDev: "8.1 %",
-          min: "28.3 %",
-          max: "68.7 %",
-          trend: "decreasing",
-          status: "Good",
-        },
-        {
-          metric: "Carbon Monoxide (CO)",
-          mean: "64.2 ppm",
-          median: "62.8 ppm",
-          stdDev: "12.4 ppm",
-          min: "45.6 ppm",
-          max: "89.2 ppm",
+          metric: "VOCs",
+          mean: "142.6 ppb",
+          median: "138.5 ppb",
+          stdDev: "32.1 ppb",
+          min: "87.3 ppb",
+          max: "210.8 ppb",
           trend: "increasing",
           status: "Moderate",
         },
         {
-          metric: "Air Quality Index",
-          mean: "142.7",
-          median: "138.9",
-          stdDev: "28.3",
-          min: "98.4",
-          max: "186.5",
+          metric: "PM2.5",
+          mean: "10.2 μg/m³",
+          median: "9.8 μg/m³",
+          stdDev: "2.4 μg/m³",
+          min: "5.6 μg/m³",
+          max: "16.7 μg/m³",
+          trend: "decreasing",
+          status: "Good",
+        },
+        {
+          metric: "PM10",
+          mean: "22.7 μg/m³",
+          median: "21.9 μg/m³",
+          stdDev: "5.1 μg/m³",
+          min: "12.3 μg/m³",
+          max: "34.5 μg/m³",
           trend: "stable",
+          status: "Good",
+        },
+        {
+          metric: "Methane",
+          mean: "872.4 ppm",
+          median: "865.2 ppm",
+          stdDev: "112.6 ppm",
+          min: "645.8 ppm",
+          max: "1120.3 ppm",
+          trend: "increasing",
           status: "Moderate",
         },
       ]
@@ -435,16 +427,14 @@ export default function Dashboard() {
 
       // Generate correlation data
       const corrData = Array.from({ length: 20 }, (_, i) => {
-        const temperature = 20 + i * 0.8
-        // Create a correlation between temperature and AQI with some noise
-        const aqi = 80 + temperature * 2 + (Math.random() - 0.5) * 40
-        return { temperature, aqi }
+        const temperature = 18 + i * 0.5
+        // Create a correlation between temperature and VOC with some noise
+        const voc = 80 + temperature * 3 + (Math.random() - 0.5) * 30
+        return { temperature, voc }
       })
       setCorrelationData(corrData)
     }
   }, [sensorData])
-
-  const colors = getChartColors()
 
   return (
     <div className="space-y-6">
@@ -465,9 +455,9 @@ export default function Dashboard() {
                   <p className="font-medium">Air Quality Index: {airQualityIndex}</p>
                   <p>Status: {aqiStatus.status}</p>
                   <p className="text-sm text-muted-foreground">
-                    The Air Quality Index (AQI) is calculated based on the concentration of pollutants. Values below 50
-                    are considered good, 51-100 moderate, 101-150 unhealthy for sensitive groups, and above 150
-                    unhealthy for all.
+                    The Air Quality Index (AQI) is calculated based on the concentration of pollutants, primarily PM2.5,
+                    CO, and VOCs. Values below 50 are considered good, 51-100 moderate, 101-150 unhealthy for sensitive
+                    groups, and above 150 unhealthy for all.
                   </p>
                 </div>
               </TooltipContent>
@@ -491,7 +481,7 @@ export default function Dashboard() {
           </Button>
 
           {dataSource === "thingspeak" && (
-            <Button onClick={handleSync} variant="outline" className="gap-2 bg-transparent">
+            <Button onClick={handleSync} variant="outline" className="gap-2">
               <Clock className="h-4 w-4" />
               Sync to Database
             </Button>
@@ -507,14 +497,6 @@ export default function Dashboard() {
         <div className="text-sm text-muted-foreground">Last updated: {format(lastUpdated, "yyyy-MM-dd HH:mm:ss")}</div>
       )}
 
-      {/* Debug information */}
-      {process.env.NODE_ENV === "development" && (
-        <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
-          Debug: Data source: {dataSource} | Loading: {isLoading.toString()} | Data count: {sensorData.length} | Error:{" "}
-          {error?.message || "None"}
-        </div>
-      )}
-
       <Tabs defaultValue="realtime" value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="realtime">Real-time</TabsTrigger>
@@ -526,14 +508,9 @@ export default function Dashboard() {
           {isLoading ? (
             <div className="flex justify-center items-center h-40">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-              <span className="ml-4">Loading {dataSource === "thingspeak" ? "ThingSpeak" : "database"} data...</span>
             </div>
           ) : error ? (
-            <div className="text-center text-red-500 p-8">
-              <h3 className="text-lg font-medium mb-2">Error loading data</h3>
-              <p className="mb-4">{error.message}</p>
-              <Button onClick={handleRefresh}>Try Again</Button>
-            </div>
+            <div className="text-center text-red-500">Error loading data. Please try again.</div>
           ) : sensorData.length === 0 ? (
             <div className="text-center py-8">
               <div className="mb-4">
@@ -545,13 +522,13 @@ export default function Dashboard() {
                   ? "No data is currently available from ThingSpeak. Please check your connection or try again later."
                   : "No data is currently available in the database. Try syncing with ThingSpeak first."}
               </p>
-              <Button onClick={handleRefresh}>Refresh Data</Button>
+              {dataSource === "thingspeak" && <Button onClick={handleRefresh}>Refresh Data</Button>}
             </div>
           ) : (
             <>
               {/* Pollutant Cards */}
               <motion.div
-                className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
+                className="grid gap-4 md:grid-cols-2 lg:grid-cols-5"
                 variants={containerVariants}
                 initial="hidden"
                 animate="show"
@@ -569,7 +546,7 @@ export default function Dashboard() {
                             <CardContent>
                               <div className="flex items-center justify-between">
                                 <div className="text-2xl font-bold">
-                                  {pollutant.value.toFixed(1)}
+                                  {pollutant.value.toFixed(2)}
                                   <span className="ml-1 text-sm font-normal text-muted-foreground">
                                     {pollutant.unit}
                                   </span>
@@ -578,11 +555,8 @@ export default function Dashboard() {
                               </div>
                             </CardContent>
                             <CardFooter className="pt-0">
-                              <div
-                                className={`text-xs ${pollutant.change > 0 ? "text-red-500" : pollutant.change < 0 ? "text-green-500" : "text-muted-foreground"}`}
-                              >
-                                {pollutant.change > 0 ? "↑" : pollutant.change < 0 ? "↓" : "→"}{" "}
-                                {Math.abs(pollutant.change)} from previous reading
+                              <div className={`text-xs ${pollutant.change > 0 ? "text-red-500" : "text-green-500"}`}>
+                                {pollutant.change > 0 ? "↑" : "↓"} {Math.abs(pollutant.change)} from previous reading
                               </div>
                             </CardFooter>
                           </Card>
@@ -615,64 +589,22 @@ export default function Dashboard() {
                       <BarChart3 className="h-5 w-5" />
                       Air Quality Trends (Last {sensorData.length} Readings)
                     </CardTitle>
-                    <CardDescription>Monitor changes in environmental parameters over time</CardDescription>
+                    <CardDescription>Monitor changes in pollutant levels over time</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="h-[400px]">
+                    <div className="h-[300px]">
                       <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
-                          <XAxis
-                            dataKey="time"
-                            stroke={colors.text}
-                            fontSize={12}
-                            tickLine={{ stroke: colors.grid }}
-                            axisLine={{ stroke: colors.grid }}
-                          />
-                          <YAxis
-                            stroke={colors.text}
-                            fontSize={12}
-                            tickLine={{ stroke: colors.grid }}
-                            axisLine={{ stroke: colors.grid }}
-                          />
-                          <Tooltip content={<CustomTooltip />} />
-                          <Legend wrapperStyle={{ color: colors.text }} />
-                          <Line
-                            type="monotone"
-                            dataKey="Temperature"
-                            name="Temperature (°C)"
-                            stroke={colors.temperature}
-                            strokeWidth={2}
-                            dot={{ fill: colors.temperature, strokeWidth: 2, r: 4 }}
-                            activeDot={{ r: 6, stroke: colors.temperature, strokeWidth: 2, fill: colors.background }}
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="Humidity"
-                            name="Humidity (%)"
-                            stroke={colors.humidity}
-                            strokeWidth={2}
-                            dot={{ fill: colors.humidity, strokeWidth: 2, r: 4 }}
-                            activeDot={{ r: 6, stroke: colors.humidity, strokeWidth: 2, fill: colors.background }}
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="CO"
-                            name="CO (ppm)"
-                            stroke={colors.co}
-                            strokeWidth={2}
-                            dot={{ fill: colors.co, strokeWidth: 2, r: 4 }}
-                            activeDot={{ r: 6, stroke: colors.co, strokeWidth: 2, fill: colors.background }}
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="AQI"
-                            name="Air Quality"
-                            stroke={colors.aqi}
-                            strokeWidth={2}
-                            dot={{ fill: colors.aqi, strokeWidth: 2, r: 4 }}
-                            activeDot={{ r: 6, stroke: colors.aqi, strokeWidth: 2, fill: colors.background }}
-                          />
+                        <LineChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="time" />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          <Line type="monotone" dataKey="CO" stroke="hsl(var(--chart-co))" activeDot={{ r: 8 }} />
+                          <Line type="monotone" dataKey="VOCs" stroke="hsl(var(--chart-vocs))" />
+                          <Line type="monotone" dataKey="PM25" stroke="hsl(var(--chart-pm25))" />
+                          <Line type="monotone" dataKey="PM10" stroke="hsl(var(--chart-pm10))" />
+                          <Line type="monotone" dataKey="Methane" stroke="hsl(var(--chart-no2))" />
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
@@ -686,7 +618,7 @@ export default function Dashboard() {
                   <CardHeader className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                     <div>
                       <CardTitle>Detailed Readings</CardTitle>
-                      <CardDescription>Recent environmental measurements from CityAir+ sensors</CardDescription>
+                      <CardDescription>Recent air quality measurements across all zones</CardDescription>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Select value={tableLocation} onValueChange={setTableLocation}>
@@ -694,7 +626,7 @@ export default function Dashboard() {
                           <SelectValue placeholder="Location" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">All Cities</SelectItem>
+                          <SelectItem value="all">All Locations</SelectItem>
                           {Array.from(new Set(sensorData.map((item) => item.location))).map((location) => (
                             <SelectItem key={location} value={location}>
                               {location}
@@ -710,9 +642,9 @@ export default function Dashboard() {
                         <SelectContent>
                           <SelectItem value="all">All Readings</SelectItem>
                           <SelectItem value="high-co">High CO</SelectItem>
-                          <SelectItem value="high-temp">High Temperature</SelectItem>
-                          <SelectItem value="low-humidity">Low Humidity</SelectItem>
-                          <SelectItem value="high-aqi">High AQI</SelectItem>
+                          <SelectItem value="high-voc">High VOC</SelectItem>
+                          <SelectItem value="high-pm25">High PM2.5</SelectItem>
+                          <SelectItem value="high-pm10">High PM10</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -722,45 +654,51 @@ export default function Dashboard() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Time</TableHead>
-                          <TableHead>City</TableHead>
-                          <TableHead>Temperature (°C)</TableHead>
-                          <TableHead>Humidity (%)</TableHead>
+                          <TableHead>Location</TableHead>
                           <TableHead>CO (ppm)</TableHead>
-                          <TableHead>Air Quality</TableHead>
+                          <TableHead>VOCs (ppb)</TableHead>
+                          <TableHead>Methane (ppm)</TableHead>
+                          <TableHead>PM2.5 (μg/m³)</TableHead>
+                          <TableHead>PM10 (μg/m³)</TableHead>
+                          <TableHead>Temp (°C)</TableHead>
+                          <TableHead>Humidity (%)</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {filteredTableData.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={6} className="text-center py-8">
+                            <TableCell colSpan={9} className="text-center py-8">
                               No data matches your current filters
                             </TableCell>
                           </TableRow>
                         ) : (
                           paginatedData.map((reading) => (
-                            <TableRow key={reading.id || `reading-${reading.timestamp}`}>
+                            <TableRow key={reading.id}>
                               <TableCell>{format(new Date(reading.timestamp), "yyyy-MM-dd HH:mm:ss")}</TableCell>
-                              <TableCell className="font-medium">{reading.location}</TableCell>
-                              <TableCell
-                                className={
-                                  reading.temperature && reading.temperature > 35 ? "text-red-500 font-medium" : ""
-                                }
-                              >
-                                {reading.temperature?.toFixed(1) || "N/A"}
+                              <TableCell>{reading.location}</TableCell>
+                              <TableCell className={reading.co && reading.co > 5 ? "text-red-500 font-medium" : ""}>
+                                {reading.co?.toFixed(2) || "N/A"}
+                              </TableCell>
+                              <TableCell className={reading.voc && reading.voc > 150 ? "text-red-500 font-medium" : ""}>
+                                {reading.voc?.toFixed(2) || "N/A"}
                               </TableCell>
                               <TableCell
-                                className={reading.humidity && reading.humidity < 20 ? "text-red-500 font-medium" : ""}
+                                className={reading.methane && reading.methane > 1000 ? "text-red-500 font-medium" : ""}
                               >
-                                {reading.humidity?.toFixed(1) || "N/A"}
-                              </TableCell>
-                              <TableCell className={reading.co && reading.co > 50 ? "text-red-500 font-medium" : ""}>
-                                {reading.co?.toFixed(0) || "N/A"}
+                                {reading.methane?.toFixed(2) || "N/A"}
                               </TableCell>
                               <TableCell
-                                className={reading.pm2_5 && reading.pm2_5 > 100 ? "text-red-500 font-medium" : ""}
+                                className={reading.pm2_5 && reading.pm2_5 > 12 ? "text-red-500 font-medium" : ""}
                               >
-                                {reading.pm2_5?.toFixed(0) || "N/A"}
+                                {reading.pm2_5?.toFixed(2) || "N/A"}
                               </TableCell>
+                              <TableCell
+                                className={reading.pm10 && reading.pm10 > 25 ? "text-red-500 font-medium" : ""}
+                              >
+                                {reading.pm10?.toFixed(2) || "N/A"}
+                              </TableCell>
+                              <TableCell>{reading.temperature?.toFixed(2) || "N/A"}</TableCell>
+                              <TableCell>{reading.humidity?.toFixed(2) || "N/A"}</TableCell>
                             </TableRow>
                           ))
                         )}
@@ -768,46 +706,41 @@ export default function Dashboard() {
                     </Table>
 
                     {/* Pagination Controls */}
-                    {totalPages > 1 && (
-                      <div className="flex items-center justify-between mt-4">
-                        <div className="text-sm text-muted-foreground">
-                          Showing {filteredTableData.length > 0 ? startIndex + 1 : 0} to{" "}
-                          {Math.min(endIndex, filteredTableData.length)} of {filteredTableData.length} entries
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCurrentPage(currentPage - 1)}
-                            disabled={currentPage === 1}
-                          >
-                            Previous
-                          </Button>
-                          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                            const page = i + 1
-                            return (
-                              <Button
-                                key={page}
-                                variant={currentPage === page ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => setCurrentPage(page)}
-                                className="w-8 h-8 p-0"
-                              >
-                                {page}
-                              </Button>
-                            )
-                          })}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCurrentPage(currentPage + 1)}
-                            disabled={currentPage === totalPages}
-                          >
-                            Next
-                          </Button>
-                        </div>
+                    <div className="flex items-center justify-between mt-4">
+                      <div className="text-sm text-muted-foreground">
+                        Showing {filteredTableData.length > 0 ? startIndex + 1 : 0} to{" "}
+                        {Math.min(endIndex, filteredTableData.length)} of {filteredTableData.length} entries
                       </div>
-                    )}
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(currentPage - 1)}
+                          disabled={currentPage === 1}
+                        >
+                          Previous
+                        </Button>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                          <Button
+                            key={page}
+                            variant={currentPage === page ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setCurrentPage(page)}
+                            className="w-8 h-8 p-0"
+                          >
+                            {page}
+                          </Button>
+                        ))}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -820,52 +753,20 @@ export default function Dashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Long-Term Trends</CardTitle>
-                <CardDescription>Environmental trends over the past month</CardDescription>
+                <CardDescription>Air quality trends over the past month</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={historicalChartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
-                      <XAxis
-                        dataKey="date"
-                        stroke={colors.text}
-                        fontSize={12}
-                        tickLine={{ stroke: colors.grid }}
-                        axisLine={{ stroke: colors.grid }}
-                      />
-                      <YAxis
-                        stroke={colors.text}
-                        fontSize={12}
-                        tickLine={{ stroke: colors.grid }}
-                        axisLine={{ stroke: colors.grid }}
-                      />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend wrapperStyle={{ color: colors.text }} />
-                      <Line
-                        type="monotone"
-                        dataKey="Temperature"
-                        name="Temperature (°C)"
-                        stroke={colors.temperature}
-                        strokeWidth={2}
-                        dot={{ fill: colors.temperature, strokeWidth: 2, r: 3 }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="CO"
-                        name="CO (ppm)"
-                        stroke={colors.co}
-                        strokeWidth={2}
-                        dot={{ fill: colors.co, strokeWidth: 2, r: 3 }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="AQI"
-                        name="Air Quality"
-                        stroke={colors.aqi}
-                        strokeWidth={2}
-                        dot={{ fill: colors.aqi, strokeWidth: 2, r: 3 }}
-                      />
+                    <LineChart data={historicalChartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line type="monotone" dataKey="CO" name="CO (ppm)" stroke="hsl(var(--chart-co))" />
+                      <Line type="monotone" dataKey="VOCs" name="VOCs (ppb)" stroke="hsl(var(--chart-vocs))" />
+                      <Line type="monotone" dataKey="PM25" name="PM2.5 (μg/m³)" stroke="hsl(var(--chart-pm25))" />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -880,25 +781,14 @@ export default function Dashboard() {
               <CardContent>
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={seasonalComparisonData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
-                      <XAxis
-                        dataKey="name"
-                        stroke={colors.text}
-                        fontSize={12}
-                        tickLine={{ stroke: colors.grid }}
-                        axisLine={{ stroke: colors.grid }}
-                      />
-                      <YAxis
-                        stroke={colors.text}
-                        fontSize={12}
-                        tickLine={{ stroke: colors.grid }}
-                        axisLine={{ stroke: colors.grid }}
-                      />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend wrapperStyle={{ color: colors.text }} />
-                      <Bar dataKey="current" name="Current" fill={colors.temperature} />
-                      <Bar dataKey="historical" name="Historical Avg" fill={colors.humidity} />
+                    <BarChart data={seasonalComparisonData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="current" name="Current" fill="hsl(var(--chart-co))" />
+                      <Bar dataKey="historical" name="Historical Avg" fill="hsl(var(--chart-vocs))" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -909,7 +799,7 @@ export default function Dashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Statistical Analysis</CardTitle>
-              <CardDescription>Detailed statistical breakdown of environmental metrics</CardDescription>
+              <CardDescription>Detailed statistical breakdown of air quality metrics</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
@@ -971,7 +861,7 @@ export default function Dashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Correlation Analysis</CardTitle>
-              <CardDescription>Relationships between different environmental parameters</CardDescription>
+              <CardDescription>Relationships between different air quality parameters</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid gap-6 md:grid-cols-2">
@@ -980,11 +870,11 @@ export default function Dashboard() {
                   <ul className="space-y-2">
                     <li className="flex items-start gap-2">
                       <div className="mt-1 h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Thermometer className="h-3 w-3 text-primary" />
+                        <Flame className="h-3 w-3 text-primary" />
                       </div>
                       <span>
-                        Strong positive correlation (0.78) between temperature and air quality index, suggesting
-                        increased pollution during warmer periods.
+                        Strong positive correlation (0.78) between temperature and VOC levels, suggesting increased
+                        emissions during warmer periods.
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
@@ -992,8 +882,8 @@ export default function Dashboard() {
                         <Droplets className="h-3 w-3 text-primary" />
                       </div>
                       <span>
-                        Moderate negative correlation (-0.42) between humidity and CO levels, indicating potential
-                        atmospheric effects on gas concentrations.
+                        Moderate negative correlation (-0.42) between humidity and PM2.5, indicating potential
+                        precipitation effects on particulate matter.
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
@@ -1001,43 +891,30 @@ export default function Dashboard() {
                         <Wind className="h-3 w-3 text-primary" />
                       </div>
                       <span>
-                        Weather patterns significantly influence air quality measurements, with clear seasonal
-                        variations observed.
+                        Weak correlation (0.21) between CO and Methane levels, suggesting different sources for these
+                        pollutants in your facility.
                       </span>
                     </li>
                   </ul>
                 </div>
                 <div className="h-[250px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={correlationData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
-                      <XAxis
-                        dataKey="temperature"
-                        name="Temperature (°C)"
-                        stroke={colors.text}
-                        fontSize={12}
-                        tickLine={{ stroke: colors.grid }}
-                        axisLine={{ stroke: colors.grid }}
-                      />
-                      <YAxis
-                        stroke={colors.text}
-                        fontSize={12}
-                        tickLine={{ stroke: colors.grid }}
-                        axisLine={{ stroke: colors.grid }}
-                      />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend wrapperStyle={{ color: colors.text }} />
+                    <LineChart data={correlationData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="temperature" name="Temperature (°C)" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
                       <Line
                         type="monotone"
-                        dataKey="aqi"
-                        name="Air Quality Index"
-                        stroke={colors.aqi}
-                        strokeWidth={2}
-                        dot={{ fill: colors.aqi, strokeWidth: 2, r: 4 }}
+                        dataKey="voc"
+                        name="VOCs (ppb)"
+                        stroke="hsl(var(--chart-vocs))"
+                        dot={{ r: 4 }}
                       />
                     </LineChart>
                   </ResponsiveContainer>
-                  <div className="text-center text-sm text-muted-foreground mt-2">Temperature vs. AQI Correlation</div>
+                  <div className="text-center text-sm text-muted-foreground mt-2">Temperature vs. VOC Correlation</div>
                 </div>
               </div>
             </CardContent>

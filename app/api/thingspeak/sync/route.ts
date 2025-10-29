@@ -92,11 +92,11 @@ export async function POST(request: Request) {
           // Map to our database field names with more flexible matching
           if (fieldName.includes("carbon") || (fieldName.includes("co") && !fieldName.includes("voc"))) {
             sensorData.co = parsedValue
-          } else if (fieldName.includes("voc") || fieldName.includes("air quality")) {
+          } else if (fieldName.includes("voc")) {
             sensorData.voc = parsedValue
           } else if (fieldName.includes("methane") || fieldName.includes("ch4")) {
             sensorData.methane = parsedValue
-          } else if (fieldName.includes("pm2.5") || fieldName.includes("pm25") || fieldName.includes("pm 2.5")) {
+          } else if (fieldName.includes("air quality") || fieldName.includes("pm2.5") || fieldName.includes("pm25") || fieldName.includes("pm 2.5")) {
             sensorData.pm2_5 = parsedValue
           } else if (fieldName.includes("pm10") || fieldName.includes("pm 10")) {
             sensorData.pm10 = parsedValue
